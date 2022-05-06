@@ -171,6 +171,10 @@ int main(int argc, char** argv)
     move_group.setMaxAccelerationScalingFactor(0.50);
 
 
+    ur_msgs::SetSpeedSliderFraction set_speed_frac;
+    set_speed_frac.request.speed_slider_fraction = 0.80; // change velocity
+    clientSpeedSlider.call(set_speed_frac);   
+
 
 
     // move robot to home position
@@ -202,10 +206,6 @@ int main(int argc, char** argv)
 
     move_group.setStartState(*move_group.getCurrentState());
     geometry_msgs::Pose homePositionPose = move_group.getCurrentPose().pose;
-
-    ur_msgs::SetSpeedSliderFraction set_speed_frac;
-    set_speed_frac.request.speed_slider_fraction = 0.20; // change velocity
-    clientSpeedSlider.call(set_speed_frac);   
 
 
 /*
@@ -267,7 +267,7 @@ int main(int argc, char** argv)
         ROS_INFO("ret: %s", srv.response.res.c_str());
     }
 
-    sleep(2);
+//    sleep(2);
 
     // wait until the activation action is completed to continue with the next action
     while( gripperStatus.gSTA != 3 )
@@ -277,13 +277,13 @@ int main(int argc, char** argv)
     }
 
     printf("COMPLETED: gSTA [%d]\n", gripperStatus.gSTA);
-    sleep(2);
+//    sleep(2);
 
     // set gripper to standby to clear the flags
     outputControlValues.rGTO = 0;
     Robotiq2FGripperArgPub.publish(outputControlValues);
     std::cout << "STANDBY GRIPPER" << std::endl; 
-    sleep(2);
+    sleep(1);
 
 
     // close the gripper to the maximum value of rPR = 255
@@ -304,7 +304,7 @@ int main(int argc, char** argv)
     }
 
     printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
-    sleep(2);
+//    sleep(2);
 
 
     /*****************************************************************************************/
@@ -348,15 +348,29 @@ int main(int argc, char** argv)
 //    move_group.execute(trajectory);
 //    geometry_msgs::Pose maxPositionZ = move_group.getCurrentPose().pose;
 
+    bool maxThresholdZ = false;
+    contactZ = false;
+    contactPressure = false;
+
+    double updatedMaxForceX = 0.0;
+    double updatedMaxForceY = 0.0;
+    double updatedMaxForceZ = 0.0;
+
+    double avgFx = 0.0;
+    double avgFy = 0.0;
+    double avgFz = 0.0;
+
+    while( maxThresholdZ == false )
+    {
+    avgFx = 0.0;
+    avgFy = 0.0;
+    avgFz = 0.0;
+
     srv.request.command_id = srv.request.COMMAND_SET_ZERO; // set force and torque values of the FT sensor 0 
     if( clientFTSensor.call( srv ) )
     {
         ROS_INFO("ret: %s", srv.response.res.c_str());
     }
-
-    double avgFx = 0.0;
-    double avgFy = 0.0;
-    double avgFz = 0.0;
 
     for(int i = 0; i < 50; i++)
     {
@@ -370,61 +384,83 @@ int main(int argc, char** argv)
     avgFy = (avgFy / 50);
     avgFz = (avgFz / 50);
 
-    double updatedMaxForceX = maxForceX + avgFx;
-    double updatedMaxForceY = maxForceY + avgFy;
-    double updatedMaxForceZ = maxForceZ;// + avgFz;
+    updatedMaxForceX = maxForceX + avgFx;
+    updatedMaxForceY = maxForceY + avgFy;
+    updatedMaxForceZ = avgFz + (avgFz * 10.00); //maxForceZ + avgFz;
+
+    if( fabs(updatedMaxForceZ) >= 1.0 && fabs(updatedMaxForceZ) <= 3.0 )
+        maxThresholdZ = true;
+    else
+        cout << "Adjusting maxThresholZ" << endl;
+
+    }
+
+    if( updatedMaxForceZ > 0 )
+        updatedMaxForceZ = -1 * updatedMaxForceZ;
 
     globalUpdatedMaxForceZ = updatedMaxForceZ;
+
+    cout << "avgFx = " << avgFx << endl;
+    cout << "avgFy = " << avgFy << endl;
+    cout << "avgFx = " << avgFz << endl;
 
     cout << "updatedMaxForceX = " << updatedMaxForceX << endl;
     cout << "updatedMaxForceY = " << updatedMaxForceY << endl;
     cout << "updatedMaxForceZ = " << updatedMaxForceZ << endl;
 
-    sleep(2.0);
+    sleep(0.5);
 
-    contactZ = false;
-    contactPressure = false;
+    set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
+    clientSpeedSlider.call(set_speed_frac);   
 
     move_group.asyncExecute(trajectory);
 
+    srv.request.command_id = srv.request.COMMAND_SET_ZERO; // set force and torque values of the FT sensor 0 
+    if( clientFTSensor.call( srv ) )
+    {
+        ROS_INFO("ret: %s", srv.response.res.c_str());
+    }
+
     while( contactZ == false ) //currentForceZ < updatedMaxForceZ ) //&& (abs(currentForceY) < abs(updatedMaxForceY)) && (abs(currentForceZ) < abs(updatedMaxForceX)) ) 
     {
+        if( currentForceZ > 0 )
+            currentForceZ = -1 * currentForceZ;
 
-        if( (currentForceZ <= updatedMaxForceZ) )
+        if( currentForceZ <= updatedMaxForceZ )
         {
-
-            move_group.setMaxVelocityScalingFactor(0.001);
-            move_group.setMaxAccelerationScalingFactor(0.001);
+            move_group.stop();
 
             contactZ = true;
-
-            move_group.stop();
 
             move_group.setStartState(*move_group.getCurrentState());
             std::vector<geometry_msgs::Pose> waypoints2;
             geometry_msgs::Pose stopPosition = move_group.getCurrentPose().pose;
-//            stopPosition.position.z = stopPosition.position.z + 0.040;
             waypoints2.push_back(stopPosition);
 
             moveit_msgs::RobotTrajectory trajectory2;
             fraction = move_group.computeCartesianPath(waypoints2, eef_step, jump_threshold, trajectory2, true);
             ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
 
-            move_group.execute(trajectory2);
+//            move_group.execute(trajectory2);
+            move_group.asyncExecute(trajectory2);
+
+//            set_speed_frac.request.speed_slider_fraction = 0.20; // change velocity
+//            clientSpeedSlider.call(set_speed_frac);   
+
+            sleep(1.0);
 
             cout << "==================================================" << endl;
             cout << "updatedMaxForceZ = " << updatedMaxForceZ << endl;
             cout << "maximum contact force detected in Z = " << currentForceZ << endl;
             cout << "==================================================" << endl;
         }
-
     }
 
-    set_speed_frac.request.speed_slider_fraction = 0.20; // change velocity
+    set_speed_frac.request.speed_slider_fraction = 0.80; // change velocity
     clientSpeedSlider.call(set_speed_frac);   
 
-    move_group.stop();
-    sleep(1.0);
+//    move_group.stop();
+    sleep(0.5);
 
     move_group.setStartState(*move_group.getCurrentState());
     std::vector<geometry_msgs::Pose> waypoints3;
@@ -440,7 +476,7 @@ int main(int argc, char** argv)
     // End task for pressing blue button
     /*****************************************************************************************/
 
-    sleep(2.0);
+    sleep(0.5);
 
     /*****************************************************************************************/
     // Start task for removing battery lid
@@ -473,15 +509,22 @@ int main(int argc, char** argv)
     visual_tools.publishAxisLabeled(waypoints4[i], "pt" + std::to_string(i), rvt::SMALL);
     visual_tools.trigger();
 
+
+    maxThresholdZ = false;
+    contactZ = false;
+    contactPressure = false;
+
+    while( maxThresholdZ == false )
+    {
+    avgFx = 0.0;
+    avgFy = 0.0;
+    avgFz = 0.0;
+
     srv.request.command_id = srv.request.COMMAND_SET_ZERO; // set force and torque values of the FT sensor 0 
     if( clientFTSensor.call( srv ) )
     {
         ROS_INFO("ret: %s", srv.response.res.c_str());
     }
-
-    avgFx = 0.0;
-    avgFy = 0.0;
-    avgFz = 0.0;
 
     for(int i = 0; i < 50; i++)
     {
@@ -497,44 +540,63 @@ int main(int argc, char** argv)
 
     updatedMaxForceX = maxForceX + avgFx;
     updatedMaxForceY = maxForceY + avgFy;
-    updatedMaxForceZ = maxForceZ + (avgFz*1);
+    updatedMaxForceZ = avgFz + (avgFz * 10.00); //maxForceZ + avgFz;
+
+    if( fabs(updatedMaxForceZ) >= 1.0 && fabs(updatedMaxForceZ) <= 3.0 )
+        maxThresholdZ = true;
+    else
+        cout << "Adjusting maxThresholZ" << endl;
+
+    }
+
+    if( updatedMaxForceZ > 0 )
+        updatedMaxForceZ = -1 * updatedMaxForceZ;
 
     globalUpdatedMaxForceZ = updatedMaxForceZ;
+
+    cout << "avgFx = " << avgFx << endl;
+    cout << "avgFy = " << avgFy << endl;
+    cout << "avgFx = " << avgFz << endl;
 
     cout << "updatedMaxForceX = " << updatedMaxForceX << endl;
     cout << "updatedMaxForceY = " << updatedMaxForceY << endl;
     cout << "updatedMaxForceZ = " << updatedMaxForceZ << endl;
 
-    sleep(2.0);
+    sleep(0.5);
 
-    contactZ = false;
+    set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
+    clientSpeedSlider.call(set_speed_frac);   
 
-    move_group.asyncExecute(trajectory4);
+    move_group.asyncExecute(trajectory);
+
+    srv.request.command_id = srv.request.COMMAND_SET_ZERO; // set force and torque values of the FT sensor 0 
+    if( clientFTSensor.call( srv ) )
+    {
+        ROS_INFO("ret: %s", srv.response.res.c_str());
+    }
 
     geometry_msgs::Pose stopLidPosition = move_group.getCurrentPose().pose;
 
     while( contactZ == false ) //currentForceZ < updatedMaxForceZ ) //&& (abs(currentForceY) < abs(updatedMaxForceY)) && (abs(currentForceZ) < abs(updatedMaxForceX)) ) 
     {
+        if( currentForceZ > 0 )
+            currentForceZ = -1 * currentForceZ;
 
-        if( (currentForceZ <= updatedMaxForceZ) )
+        if( currentForceZ <= updatedMaxForceZ )
         {
-//            set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
-//            clientSpeedSlider.call(set_speed_frac);   
-
             move_group.setMaxVelocityScalingFactor(0.01);
             move_group.setMaxAccelerationScalingFactor(0.01);
 
-//            sleep(2.0);
+            move_group.stop();
+
 
             contactZ = true;
-
-            move_group.stop();
 
             move_group.setStartState(*move_group.getCurrentState());
             std::vector<geometry_msgs::Pose> waypoints5;
             stopLidPosition = move_group.getCurrentPose().pose;
             cout << "Stop z position = " << stopLidPosition.position.z << endl;
-            stopLidPosition.position.z = stopLidPosition.position.z - 0.0015;
+            stopLidPosition.position.z = stopLidPosition.position.z - 0.0022;
             waypoints5.push_back(stopLidPosition);
 
             moveit_msgs::RobotTrajectory trajectory5;
@@ -542,6 +604,9 @@ int main(int argc, char** argv)
             ROS_INFO_NAMED("Robothon", "Visualizing plan - stop position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
 
             move_group.execute(trajectory5);
+//            move_group.asyncExecute(trajectory5);
+
+//            sleep(1.0);
 
             cout << "==================================================" << endl;
             cout << "Current z position = " << stopLidPosition.position.z << endl;
@@ -552,8 +617,17 @@ int main(int argc, char** argv)
 
     }
 
+    move_group.setMaxVelocityScalingFactor(0.50);
+    move_group.setMaxAccelerationScalingFactor(0.50);
 
-    sleep(2.0);
+//    set_speed_frac.request.speed_slider_fraction = 0.20; // change velocity
+//    clientSpeedSlider.call(set_speed_frac);   
+
+//    move_group.stop();
+    sleep(1.0);
+
+    set_speed_frac.request.speed_slider_fraction = 0.30; // change velocity
+    clientSpeedSlider.call(set_speed_frac);   
 
     move_group.setStartState(*move_group.getCurrentState());
     std::vector<geometry_msgs::Pose> waypoints6;
@@ -567,9 +641,12 @@ int main(int argc, char** argv)
 
     move_group.execute(trajectory6);
     
-    sleep(2.0);
+    sleep(0.5);
 
     // move robot back to stopLidPosition
+
+    set_speed_frac.request.speed_slider_fraction = 0.80; // change velocity
+    clientSpeedSlider.call(set_speed_frac);   
 
     move_group.setStartState(*move_group.getCurrentState());
     geometry_msgs::Pose topOfLidPosition = move_group.getCurrentPose().pose;
@@ -584,7 +661,7 @@ int main(int argc, char** argv)
 
     move_group.execute(trajectory7);
     
-    sleep(2.0);
+    sleep(0.5);
 
     // rotate wrist
 
@@ -644,7 +721,7 @@ int main(int argc, char** argv)
   
     move_group.setStartState(*move_group.getCurrentState());
   
-    sleep(2.0);
+    sleep(0.5);
 /*
     // When done with the path constraint be sure to clear it.
     move_group.clearPathConstraints();
@@ -658,7 +735,7 @@ int main(int argc, char** argv)
     outputControlValues.rGTO = 0;
     Robotiq2FGripperArgPub.publish(outputControlValues);
     std::cout << "STANDBY GRIPPER" << std::endl; 
-    sleep(2);
+    sleep(1);
 
     // close the gripper to the maximum value of rPR = 255
     // rGTO = 1 allows the robot to perform an action
@@ -678,7 +755,7 @@ int main(int argc, char** argv)
     }
 
     printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
-    sleep(2);
+//    sleep(2);
 
 
     // move robot down to grasp battery lid
@@ -686,7 +763,7 @@ int main(int argc, char** argv)
     move_group.setStartState(*move_group.getCurrentState());
     std::vector<geometry_msgs::Pose> waypoints8;
     geometry_msgs::Pose closeOfLidPosition = move_group.getCurrentPose().pose;;
-    closeOfLidPosition.position.z = stopLidPosition.position.z - 0.018; // - 0.002;
+    closeOfLidPosition.position.z = stopLidPosition.position.z - 0.016; // - 0.002;
     waypoints8.push_back(closeOfLidPosition);
 
     moveit_msgs::RobotTrajectory trajectory8;
@@ -695,7 +772,7 @@ int main(int argc, char** argv)
 
     move_group.execute(trajectory8);
     
-    sleep(2.0);
+    sleep(0.5);
 
 
     // close gripper
@@ -704,13 +781,13 @@ int main(int argc, char** argv)
     outputControlValues.rGTO = 0;
     Robotiq2FGripperArgPub.publish(outputControlValues);
     std::cout << "STANDBY GRIPPER" << std::endl; 
-    sleep(2);
+    sleep(1);
 
     // close the gripper to the maximum value of rPR = 255
     // rGTO = 1 allows the robot to perform an action
     outputControlValues.rGTO = 1;
     outputControlValues.rSP = 100;
-    outputControlValues.rPR = 225;
+    outputControlValues.rPR = 220;
     outputControlValues.rFR = 50;
     Robotiq2FGripperArgPub.publish(outputControlValues);
     std::cout << "CLOSE GRIPPER" << std::endl; 
@@ -724,7 +801,7 @@ int main(int argc, char** argv)
     }
 
     printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
-    sleep(2);
+//    sleep(2);
 
 
     // End task for removing battery lid
@@ -748,7 +825,7 @@ int main(int argc, char** argv)
 
     move_group.execute(trajectory12);
 
-    sleep(1.0);
+    sleep(0.5);
 
     move_group.setStartState(*move_group.getCurrentState());
     std::vector<geometry_msgs::Pose> waypoints9;
@@ -760,13 +837,13 @@ int main(int argc, char** argv)
 
     move_group.execute(trajectory9);
 
-    sleep(1.0);
+    sleep(0.5);
 
     // move robot down
 
     move_group.setStartState(*move_group.getCurrentState());
     geometry_msgs::Pose releaseLidPosition = move_group.getCurrentPose().pose;
-    releaseLidPosition.position.z = releaseLidPosition.position.z - 0.110;
+    releaseLidPosition.position.z = releaseLidPosition.position.z - 0.120;
     std::vector<geometry_msgs::Pose> waypoints10;
     waypoints10.push_back(releaseLidPosition);
 
@@ -776,7 +853,7 @@ int main(int argc, char** argv)
 
     move_group.execute(trajectory10);
 
-    sleep(1.0);
+    sleep(0.5);
 
     // close the gripper to the maximum value of rPR = 255
     // rGTO = 1 allows the robot to perform an action
@@ -796,7 +873,7 @@ int main(int argc, char** argv)
     }
 
     printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
-    sleep(2);
+//    sleep(2);
 
     // End task go to home position
     /*****************************************************************************************/
