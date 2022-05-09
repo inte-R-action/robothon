@@ -576,28 +576,34 @@ int main(int argc, char** argv)
     }
 
     geometry_msgs::Pose stopLidPosition = move_group.getCurrentPose().pose;
+    geometry_msgs::Pose preStopLidPosition = move_group.getCurrentPose().pose;
 
     while( contactZ == false ) //currentForceZ < updatedMaxForceZ ) //&& (abs(currentForceY) < abs(updatedMaxForceY)) && (abs(currentForceZ) < abs(updatedMaxForceX)) ) 
     {
         if( currentForceZ > 0 )
             currentForceZ = -1 * currentForceZ;
 
+        move_group.setStartState(*move_group.getCurrentState());
+        std::vector<geometry_msgs::Pose> waypoints5;
+        preStopLidPosition = move_group.getCurrentPose().pose;
+        
         if( currentForceZ <= updatedMaxForceZ )
         {
-            move_group.setMaxVelocityScalingFactor(0.01);
-            move_group.setMaxAccelerationScalingFactor(0.01);
+//            move_group.setMaxVelocityScalingFactor(0.01);
+//            move_group.setMaxAccelerationScalingFactor(0.01);
 
-            move_group.stop();
+//            move_group.stop();
 
 
             contactZ = true;
 
-            move_group.setStartState(*move_group.getCurrentState());
-            std::vector<geometry_msgs::Pose> waypoints5;
+//            move_group.setStartState(*move_group.getCurrentState());
+//            std::vector<geometry_msgs::Pose> waypoints5;
             stopLidPosition = move_group.getCurrentPose().pose;
             cout << "Stop z position = " << stopLidPosition.position.z << endl;
-            stopLidPosition.position.z = stopLidPosition.position.z - 0.0022;
+ //           stopLidPosition.position.z = stopLidPosition.position.z - 0.0022;
             waypoints5.push_back(stopLidPosition);
+            waypoints5.push_back(preStopLidPosition);
 
             moveit_msgs::RobotTrajectory trajectory5;
             fraction = move_group.computeCartesianPath(waypoints5, eef_step, jump_threshold, trajectory5, true);
