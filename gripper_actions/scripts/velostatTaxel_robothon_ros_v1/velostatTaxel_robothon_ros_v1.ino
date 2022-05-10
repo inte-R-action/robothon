@@ -1,8 +1,5 @@
-// Vibr-O-scope project
-
-// piezo sensor and vibration motor
-
-// output signal (voltage for columns)
+// author: inte-R-action Lab
+// Velostat sensor for Robothon competition
 
 #include <ros.h>
 #include <ros/time.h>
@@ -12,6 +9,7 @@
 #include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/Float32MultiArray.h>
 
+// 3 x 3 matrix sensor
 int outCol[3];
 int inRow[3];
 float frsADC;
@@ -24,6 +22,7 @@ ros::NodeHandle  nh;
 
 std_msgs::Float32MultiArray array_msg_velostat;
 
+// publisher - topic: velostatData
 ros::Publisher vibroTactipVelostatPub("velostatData", &array_msg_velostat);
 
 void setup() 
