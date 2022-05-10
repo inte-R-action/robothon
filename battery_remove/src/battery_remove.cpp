@@ -121,9 +121,9 @@ void velostatSensorCallback(const std_msgs::Float32MultiArray::ConstPtr& msg)
     avgVelostatGripper[1] = 0.0;
     avgVelostatGripper[2] = 0.0;
 
-    avgVelostatGripper[0] = ( msg->data[0] + msg->data[1] + msg->data[2] ) /2.0;
-    avgVelostatGripper[1] = ( msg->data[3] + msg->data[4] + msg->data[5] ) /2.0;
-    avgVelostatGripper[2] = ( msg->data[6] + msg->data[7] + msg->data[8] ) /2.0;
+    avgVelostatGripper[0] = ( msg->data[0] + msg->data[1] + msg->data[2] ) /2.0;    // edge of sensor
+    avgVelostatGripper[1] = ( msg->data[3] + msg->data[4] + msg->data[5] ) /2.0;    // centre of sensor
+    avgVelostatGripper[2] = ( msg->data[6] + msg->data[7] + msg->data[8] ) /2.0;    // edge of sensor
 
 /*    if( (avgVelostatGripper[0] >= 7.0) || (avgVelostatGripper[1] >= 7.0) || (avgVelostatGripper[2] >= 7.0) )
     {
@@ -153,6 +153,9 @@ void velostatSensorCallback(const std_msgs::Float32MultiArray::ConstPtr& msg)
     }
     else
         repositionRobot = "nomove";
+
+    if( ( avgVelostatGripper[1] >= 7.0 ) && ( ( msg->data[4] >= 14 ) || ( msg->data[5] >= 14.0 ) ) )
+        repositionRobot = "completed";
 
     cout << "Velostat sensor average: " << repositionRobot << endl;
 
@@ -860,7 +863,7 @@ int main(int argc, char** argv)
 
         sleep(0.5);
 
-        if( repositionRobot.compare("nomove") == 0 )
+        if( repositionRobot.compare("completed") == 0 )
         {
             isBatteryCentered = true;
             cout << "Battery centered" << endl;
@@ -904,9 +907,8 @@ int main(int argc, char** argv)
             }
             else
             {
-                repositionToGraspBattery.position.y = repositionToGraspBattery.position.y + 0.0;
+                repositionToGraspBattery.position.y = repositionToGraspBattery.position.y + 0.002;
                 cout << "no reposition" << endl;
-                isBatteryCentered = true;
             }
 
             waypoints8.push_back(repositionToGraspBattery);
