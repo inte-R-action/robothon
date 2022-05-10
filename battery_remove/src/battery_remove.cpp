@@ -1,8 +1,8 @@
 /*
  *********************************************************************************
- * Author: Uriel Martinez-Hernandez
+ * Author: inte-R-action lab
  * Email: u.martinez@bath.ac.uk
- * Date: 19-December-2020
+ * Date: 05-May-2022
  *
  * University of Bath
  * Multimodal Interaction and Robotic Active Perception (inte-R-action) Lab
@@ -838,22 +838,88 @@ int main(int argc, char** argv)
     /////////////////////////////////////////////////////////////////////////
     // start: Loop here to position the battery in the centre of the gripper
 
-    // close the gripper to the maximum value of rPR = 255
-    // rGTO = 1 allows the robot to perform an action
-    outputControlValues.rGTO = 1;
-    outputControlValues.rSP = 100;
-    outputControlValues.rPR = 230;
-    outputControlValues.rFR = 200;
-    Robotiq2FGripperArgPub.publish(outputControlValues);
-    std::cout << "CLOSE GRIPPER" << std::endl; 
+    bool isBatteryCentered = false;
 
-    // wait until the activation action is completed to continue with the next action
-//        while( gripperStatus.gOBJ != 3 && touchDetected == false )
-    while( gripperStatus.gOBJ != 3  && gripperStatus.gOBJ != 2 )
+    while( isBatteryCentered == false )
     {
-    }
+        // close the gripper to the maximum value of rPR = 255
+        // rGTO = 1 allows the robot to perform an action
+        outputControlValues.rGTO = 1;
+        outputControlValues.rSP = 100;
+        outputControlValues.rPR = 230;
+        outputControlValues.rFR = 200;
+        Robotiq2FGripperArgPub.publish(outputControlValues);
+        std::cout << "CLOSE GRIPPER" << std::endl; 
 
-    printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+        // wait until the activation action is completed to continue with the next action
+        while( gripperStatus.gOBJ != 3  && gripperStatus.gOBJ != 2 )
+        {
+        }
+
+        printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+
+        sleep(0.5);
+
+        if( repositionRobot.compare("nomove") == 0 )
+        {
+            isBatteryCentered = true;
+            cout << "Battery centered" << endl;
+        }
+        else
+        {
+            isBatteryCentered = false;
+
+            // open gripper for repositioning battery
+            // rGTO = 1 allows the robot to perform an action
+            outputControlValues.rGTO = 1;
+            outputControlValues.rSP = 100;
+            outputControlValues.rPR = 170;
+            outputControlValues.rFR = 200;
+            Robotiq2FGripperArgPub.publish(outputControlValues);
+            std::cout << "OPEN GRIPPER" << std::endl; 
+
+            // wait until the activation action is completed to continue with the next action
+            while( gripperStatus.gOBJ != 3  && gripperStatus.gOBJ != 2 )
+            {
+            }
+
+            printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+
+            sleep(1.0);
+
+
+            move_group.setStartState(*move_group.getCurrentState());
+            waypoints8.clear();
+            geometry_msgs::Pose repositionToGraspBattery = move_group.getCurrentPose().pose;
+
+            if( repositionRobot.compare("left") == 0 )
+            {
+                repositionToGraspBattery.position.y = repositionToGraspBattery.position.y - 0.005;
+                cout << "reposition to left" << endl;
+            }
+            else if( repositionRobot.compare("right") == 0 )
+            {
+                repositionToGraspBattery.position.y = repositionToGraspBattery.position.y + 0.005;
+                cout << "reposition to right" << endl;
+            }
+            else
+            {
+                repositionToGraspBattery.position.y = repositionToGraspBattery.position.y + 0.0;
+                cout << "no reposition" << endl;
+                isBatteryCentered = true;
+            }
+
+            waypoints8.push_back(repositionToGraspBattery);
+
+            fraction = move_group.computeCartesianPath(waypoints8, eef_step, jump_threshold, trajectory8, true);
+            ROS_INFO_NAMED("Robothon", "Visualizing plan - repositioning (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+            move_group.execute(trajectory8);
+
+            sleep(1.0);
+        }
+
+    }
 
 
     // end: Loop here to position the battery in the centre of the gripper
