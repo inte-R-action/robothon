@@ -208,32 +208,8 @@ int main(int argc, char** argv)
     geometry_msgs::Pose homePositionPose = move_group.getCurrentPose().pose;
 
 
-/*
-    ros::Timer timer = node_handle.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent&)
-    {    
-        cout << "current force z = " << currentForceZ << endl;
-        if (abs(currentForceZ) >= abs(maxForceZ) )
-        {
-            contactDetect = true;
-            cout << "Stop detected" << endl;
-//            set_speed_frac.request.speed_slider_fraction = 0.05; // change velocity
-//            clientSpeedSlider.call(set_speed_frac);
-        }
-        else
-        {
-//            set_speed_frac.request.speed_slider_fraction = 0.30; // change velocity
-//            clientSpeedSlider.call(set_speed_frac);   
-        }
-    });
-*/
 
-/*    ros::Timer stopRobotTimer = node_handle.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent&)
-    {
-        if( contactDetect == true )
-            move_group.stop();
-    });
-*/
-
+    geometry_msgs::Pose slideBattery1Position1;
 
     while( ros::ok() )
     {
@@ -438,6 +414,9 @@ int main(int argc, char** argv)
             geometry_msgs::Pose stopPosition = move_group.getCurrentPose().pose;
             waypoints2.push_back(stopPosition);
 
+            slideBattery1Position1 = stopPosition;
+
+
             moveit_msgs::RobotTrajectory trajectory2;
             fraction = move_group.computeCartesianPath(waypoints2, eef_step, jump_threshold, trajectory2, true);
             ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
@@ -469,8 +448,11 @@ int main(int argc, char** argv)
     ROS_INFO_NAMED("Robothon", "Visualizing plan - Battery Removing First Step (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
 
     move_group.execute(trajectory3);
+
+    sleep(1);
+
     int a = 0;
-    cin >> a ; 
+//    cin >> a ; 
 
 // move the robot on y axis to take off the battery from the lid
     move_group.setStartState(*move_group.getCurrentState());
@@ -488,8 +470,10 @@ int main(int argc, char** argv)
 
     cout << "Force_X:" << currentForceX << "\t" << "Force_Y:" << currentForceY << "\t" << "Force_Z:" << currentForceZ << endl;
 
-    a = 0;
-    cin >> a ; 
+    sleep(1);
+
+//    a = 0;
+//    cin >> a ; 
 
    // set_speed_frac.request.speed_slider_fraction = 0.80; // change velocity
    // clientSpeedSlider.call(set_speed_frac);   
@@ -513,7 +497,27 @@ int main(int argc, char** argv)
     sleep(0.5);
 // end of battery1 remove
 
-// Rotate the end-effector to remove the other battery
+
+    /********/
+    // start sliding battery 1 process
+
+    // close the gripper to the maximum value of rPR = 255
+    // rGTO = 1 allows the robot to perform an action
+    outputControlValues.rGTO = 1;
+    outputControlValues.rSP = 100;
+    outputControlValues.rPR = 230;
+    outputControlValues.rFR = 200;
+    Robotiq2FGripperArgPub.publish(outputControlValues);
+    std::cout << "CLOSE GRIPPER" << std::endl; 
+
+    // wait until the activation action is completed to continue with the next action
+//        while( gripperStatus.gOBJ != 3 && touchDetected == false )
+    while( gripperStatus.gOBJ != 3 )
+    {
+    }
+
+    printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+
 
     //    robot_state::RobotState start_state(*move_group.getCurrentState());
     move_group.setStartState(*move_group.getCurrentState());
@@ -529,6 +533,306 @@ int main(int argc, char** argv)
 
     // start moving robot to home position
     std::map<std::string, double> graspLidPosition;
+
+    graspLidPosition["shoulder_pan_joint"] = joint_group_positions[0];	// (deg*PI/180)
+    graspLidPosition["shoulder_lift_joint"] = joint_group_positions[1];
+    graspLidPosition["elbow_joint"] = joint_group_positions[2];
+    graspLidPosition["wrist_1_joint"] = joint_group_positions[3];
+    graspLidPosition["wrist_2_joint"] = joint_group_positions[4];
+    graspLidPosition["wrist_3_joint"] = joint_group_positions[5] + (-180.0 * 3.1416 / 180);
+
+
+    move_group.setJointValueTarget(graspLidPosition);
+//    move_group.setPlanningTime(10.0);
+
+    success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+    ROS_INFO("Visualizing PRE-START position plan (%.2f%% acheived)",success * 100.0);
+
+    move_group.execute(plan);
+
+//    move_group.setStartState(*move_group.getCurrentState());
+    sleep(1.0);
+
+
+    incrementZaxis = 0.078;
+
+    move_group.setStartState(*move_group.getCurrentState());
+//    geometry_msgs::Pose homePositionPose = homePosition; //move_group.getCurrentPose().pose;
+
+    waypoints8.clear();
+    pressButtonPosition = move_group.getCurrentPose().pose;
+    pressButtonPosition.position.z = pressButtonPosition.position.z - incrementZaxis;
+    waypoints8.push_back(pressButtonPosition);
+
+    // We want the Cartesian path to be interpolated at a resolution of 1 cm
+    // which is why we will specify 0.01 as the max step in Cartesian
+    // translation.  We will specify the jump threshold as 0.0, effectively disabling it.
+    // Warning - disabling the jump threshold while operating real hardware can cause
+    // large unpredictable motions of redundant joints and could be a safety issue
+    //moveit_msgs::RobotTrajectory trajectory8;
+    fraction = move_group.computeCartesianPath(waypoints8, eef_step, jump_threshold, trajectory, true);
+    ROS_INFO_NAMED("Robothon", "Visualizing plan - press blue button (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+    // Visualize the plan in RViz
+    visual_tools.deleteAllMarkers();
+    visual_tools.publishText(text_pose, "Cartesian Path", rvt::WHITE, rvt::XLARGE);
+    visual_tools.publishPath(waypoints8, rvt::LIME_GREEN, rvt::SMALL);
+    for (std::size_t i = 0; i < waypoints8.size(); ++i)
+    visual_tools.publishAxisLabeled(waypoints8[i], "pt" + std::to_string(i), rvt::SMALL);
+    visual_tools.trigger();
+
+    maxThresholdZ = false;
+    contactZ = false;
+    contactPressure = false;
+
+    updatedMaxForceX = 0.0;
+    updatedMaxForceY = 0.0;
+    updatedMaxForceZ = 0.0;
+
+    while( maxThresholdZ == false )
+    {
+    avgFx = 0.0;
+    avgFy = 0.0;
+    avgFz = 0.0;
+
+    srv.request.command_id = srv.request.COMMAND_SET_ZERO; // set force and torque values of the FT sensor 0 
+    if( clientFTSensor.call( srv ) )
+    {
+        ROS_INFO("ret: %s", srv.response.res.c_str());
+    }
+
+    for(int i = 0; i < 50; i++)
+    {
+        avgFx = avgFx + currentForceX;
+        avgFy = avgFy + currentForceY;
+        avgFz = avgFz + currentForceZ;
+        sleep(0.1);
+    }
+
+    avgFx = (avgFx / 50);
+    avgFy = (avgFy / 50);
+    avgFz = (avgFz / 50);
+
+    updatedMaxForceX = maxForceX + avgFx;
+    updatedMaxForceY = maxForceY + avgFy;
+    updatedMaxForceZ = avgFz + (avgFz * 10.00); //maxForceZ + avgFz;trajectory
+
+    if( fabs(updatedMaxForceZ) >= 1.0 && fabs(updatedMaxForceZ) <= 3.0 )
+        maxThresholdZ = true;
+    else
+        cout << "Adjusting maxThresholZ" << endl;
+
+    }
+
+    if( updatedMaxForceZ > 0 )
+        updatedMaxForceZ = -1 * updatedMaxForceZ;
+
+    globalUpdatedMaxForceZ = updatedMaxForceZ;
+
+    cout << "avgFx = " << avgFx << endl;
+    cout << "avgFy = " << avgFy << endl;
+    cout << "avgFx = " << avgFz << endl;
+
+    cout << "updatedMaxForceX = " << updatedMaxForceX << endl;
+    cout << "updatedMaxForceY = " << updatedMaxForceY << endl;
+    cout << "updatedMaxForceZ = " << updatedMaxForceZ << endl;
+
+    sleep(0.5);
+
+    set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
+    clientSpeedSlider.call(set_speed_frac);   
+
+    move_group.asyncExecute(trajectory);
+
+    srv.request.command_id = srv.request.COMMAND_SET_ZERO; // set force and torque values of the FT sensor 0 
+    if( clientFTSensor.call( srv ) )
+    {
+        ROS_INFO("ret: %s", srv.response.res.c_str());
+    }
+
+    contactZ = false;
+
+    geometry_msgs::Pose slideBattery1PositionN;
+
+    while( contactZ == false ) //currentForceZ < updatedMaxForceZ ) //&& (abs(currentForceY) < abs(updatedMaxForceY)) && (abs(currentForceZ) < abs(updatedMaxForceX)) ) 
+    {
+        if( currentForceZ > 0 )
+            currentForceZ = -1 * currentForceZ;
+
+        if( currentForceZ <= updatedMaxForceZ )
+        {
+            move_group.stop();
+
+            contactZ = true;
+
+            move_group.setStartState(*move_group.getCurrentState());
+            std::vector<geometry_msgs::Pose> waypoints2;
+            geometry_msgs::Pose stopPosition = move_group.getCurrentPose().pose;
+            waypoints2.push_back(stopPosition);
+
+            slideBattery1PositionN = stopPosition;
+
+
+            moveit_msgs::RobotTrajectory trajectory2;
+            fraction = move_group.computeCartesianPath(waypoints2, eef_step, jump_threshold, trajectory2, true);
+            ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+//            move_group.execute(trajectory2);
+            move_group.asyncExecute(trajectory2);
+
+//            set_speed_frac.request.speed_slider_fraction = 0.20; // change velocity
+//            clientSpeedSlider.call(set_speed_frac);   
+
+            sleep(1.0);
+
+            cout << "==================================================" << endl;
+            cout << "updatedMaxForceZ = " << updatedMaxForceZ << endl;
+            cout << "maximum contact force detected in Z = " << currentForceZ << endl;
+            cout << "==================================================" << endl;
+        }
+    }
+
+
+/*    move_group.setStartState(*move_group.getCurrentState());
+    waypoints8.clear();
+    slideBattery1Position1.position.z = slideBattery1Position1.position.z + 0.005;
+    waypoints8.push_back(slideBattery1Position1);
+
+    fraction = move_group.computeCartesianPath(waypoints8, eef_step, jump_threshold, trajectory8, true);
+    ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+    move_group.execute(trajectory8);
+*/
+    sleep(2);    
+
+    move_group.setStartState(*move_group.getCurrentState());
+    waypoints8.clear();
+    geometry_msgs::Pose slideBattery1Position2 = move_group.getCurrentPose().pose;
+    slideBattery1Position2.position.y = slideBattery1Position2.position.y + 0.025;
+    waypoints8.push_back(slideBattery1Position2);
+
+    fraction = move_group.computeCartesianPath(waypoints8, eef_step, jump_threshold, trajectory8, true);
+    ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+    move_group.execute(trajectory8);
+
+    sleep(2);
+
+    move_group.setStartState(*move_group.getCurrentState());
+    waypoints8.clear();
+    geometry_msgs::Pose slideBattery1Position3 = move_group.getCurrentPose().pose;
+    slideBattery1Position3.position.z = slideBattery1Position3.position.z + 0.040;
+    waypoints8.push_back(slideBattery1Position3);
+
+    fraction = move_group.computeCartesianPath(waypoints8, eef_step, jump_threshold, trajectory8, true);
+    ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+    move_group.execute(trajectory8);
+
+    sleep(2);
+
+
+    // close the gripper to the maximum value of rPR = 255
+    // rGTO = 1 allows the robot to perform an action
+    outputControlValues.rGTO = 1;
+    outputControlValues.rSP = 100;
+    outputControlValues.rPR = 170;
+    outputControlValues.rFR = 200;
+    Robotiq2FGripperArgPub.publish(outputControlValues);
+    std::cout << "OPEN GRIPPER" << std::endl; 
+
+    // wait until the activation action is completed to continue with the next action
+//        while( gripperStatus.gOBJ != 3 && touchDetected == false )
+    while( gripperStatus.gOBJ != 3 )
+    {
+    }
+
+    printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+
+    sleep(2);
+
+    move_group.setStartState(*move_group.getCurrentState());
+    waypoints8.clear();
+    geometry_msgs::Pose slideBattery1Position4 = move_group.getCurrentPose().pose;
+    slideBattery1Position4.position.z = slideBattery1Position4.position.z - 0.040;
+    waypoints8.push_back(slideBattery1Position4);
+
+    fraction = move_group.computeCartesianPath(waypoints8, eef_step, jump_threshold, trajectory8, true);
+    ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+    move_group.execute(trajectory8);
+
+    sleep(2);
+
+    move_group.setStartState(*move_group.getCurrentState());
+    waypoints8.clear();
+    geometry_msgs::Pose slideBattery1Position5 = move_group.getCurrentPose().pose;
+    slideBattery1Position5.position.y = slideBattery1Position5.position.y - 0.010;
+    waypoints8.push_back(slideBattery1Position5);
+
+    fraction = move_group.computeCartesianPath(waypoints8, eef_step, jump_threshold, trajectory8, true);
+    ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+    move_group.execute(trajectory8);
+
+    sleep(2);
+
+
+    // close the gripper to the maximum value of rPR = 255
+    // rGTO = 1 allows the robot to perform an action
+    outputControlValues.rGTO = 1;
+    outputControlValues.rSP = 100;
+    outputControlValues.rPR = 230;
+    outputControlValues.rFR = 200;
+    Robotiq2FGripperArgPub.publish(outputControlValues);
+    std::cout << "OPEN GRIPPER" << std::endl; 
+
+    // wait until the activation action is completed to continue with the next action
+//        while( gripperStatus.gOBJ != 3 && touchDetected == false )
+    while( gripperStatus.gOBJ != 3  && gripperStatus.gOBJ != 2 )
+    {
+    }
+
+    printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+
+
+    sleep(2);
+
+    move_group.setStartState(*move_group.getCurrentState());
+    waypoints8.clear();
+    geometry_msgs::Pose slideBattery1Position6 = move_group.getCurrentPose().pose;
+    slideBattery1Position6.position.z = slideBattery1Position6.position.z + 0.030;
+    waypoints8.push_back(slideBattery1Position6);
+
+    fraction = move_group.computeCartesianPath(waypoints8, eef_step, jump_threshold, trajectory8, true);
+    ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+    move_group.execute(trajectory8);
+
+
+    a = 0;
+    cin >> a;
+
+
+    /********/
+
+
+// Rotate the end-effector to remove the other battery
+
+    //    robot_state::RobotState start_state(*move_group.getCurrentState());
+    move_group.setStartState(*move_group.getCurrentState());
+
+//    moveit::planning_interface::MoveGroupInterface::Plan plan2;
+    current_state2 = move_group.getCurrentState();
+//    std::vector<double> joint_group_positions2;
+    current_state2->copyJointGroupPositions(joint_model_group, joint_group_positions);
+
+ 
+    for( int i = 0; i < 6; i++ )
+        cout << "Join[" << i << "] = " << joint_group_positions[i] << endl;
+
+    // start moving robot to home position
+    graspLidPosition.clear();
 
     graspLidPosition["shoulder_pan_joint"] = joint_group_positions[0];	// (deg*PI/180)
     graspLidPosition["shoulder_lift_joint"] = joint_group_positions[1];
