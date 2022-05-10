@@ -27,6 +27,8 @@
 #include "robotiq_2f_gripper_control/Robotiq2FGripper_robot_input.h"
 #include "robotiq_ft_sensor/ft_sensor.h"
 #include "robotiq_ft_sensor/sensor_accessor.h"
+#include "std_msgs/Float32MultiArray.h"
+#include "geometry_msgs/Point.h"
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -60,6 +62,9 @@ double globalUpdatedMaxForceZ = 0.0;
 bool contactZ = false;
 bool contactPressure = false;
 double currentPressure = 0.0;
+
+double avgVelostatGripper[3];
+string repositionRobot = "";
 
 /*static const std::string PLANNING_GROUP = "manipulator";
 moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
@@ -103,6 +108,56 @@ void ftSensorCallback(const robotiq_ft_sensor::ft_sensor& msg)
 */
 }
 
+
+void velostatSensorCallback(const std_msgs::Float32MultiArray::ConstPtr& msg)
+{
+/*    for(int i = 0; i < msg->data.size(); i++ )
+    {
+	    fileVelostat << msg->data[i];
+    }
+*/
+
+    avgVelostatGripper[0] = 0.0;
+    avgVelostatGripper[1] = 0.0;
+    avgVelostatGripper[2] = 0.0;
+
+    avgVelostatGripper[0] = ( msg->data[0] + msg->data[1] + msg->data[2] ) /2.0;
+    avgVelostatGripper[1] = ( msg->data[3] + msg->data[4] + msg->data[5] ) /2.0;
+    avgVelostatGripper[2] = ( msg->data[6] + msg->data[7] + msg->data[8] ) /2.0;
+
+/*    if( (avgVelostatGripper[0] >= 7.0) || (avgVelostatGripper[1] >= 7.0) || (avgVelostatGripper[2] >= 7.0) )
+    {
+
+        if( avgVelostatGripper[0] >= avgVelostatGripper[1] )
+            repositionRobot = "left";
+        else if( avgVelostatGripper[2] >= avgVelostatGripper[1] )
+            repositionRobot = "right";
+        else
+            repositionRobot = "nomove";
+    }
+    else
+        repositionRobot = "nomove";
+*/
+
+    if( avgVelostatGripper[0] >= 7.0)
+    {
+
+        if( avgVelostatGripper[0] >= avgVelostatGripper[1] )
+            repositionRobot = "left";
+    }
+    else if( avgVelostatGripper[2] >= 7.0)
+    {
+
+        if( avgVelostatGripper[2] >= avgVelostatGripper[1] )
+            repositionRobot = "right";
+    }
+    else
+        repositionRobot = "nomove";
+
+    cout << "Velostat sensor average: " << repositionRobot << endl;
+
+}
+
 void pressureSensorCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     currentPressure = msg->data;
@@ -127,6 +182,8 @@ int main(int argc, char** argv)
     ros::Subscriber RobotiqFTSensor = node_handle.subscribe("robotiq_ft_sensor", 1000, ftSensorCallback);
     ros::ServiceClient clientFTSensor = node_handle.serviceClient<robotiq_ft_sensor::sensor_accessor>("robotiq_ft_sensor_acc");
   	ros::Subscriber subPressureData = node_handle.subscribe("pressureRosPort", 1000, pressureSensorCallback);
+
+  	ros::Subscriber subVelostatData = node_handle.subscribe("velostatData", 1000, velostatSensorCallback);
 
     robotiq_ft_sensor::sensor_accessor srv;    
     ros::ServiceClient clientSpeedSlider  = node_handle.serviceClient<ur_msgs::SetSpeedSliderFraction>("/ur_hardware_interface/set_speed_slider"); //robot velocity control
@@ -175,6 +232,8 @@ int main(int argc, char** argv)
     set_speed_frac.request.speed_slider_fraction = 0.80; // change velocity
     clientSpeedSlider.call(set_speed_frac);   
 
+    int b = 0;
+    cin >> b;
 
 
     // move robot to home position
@@ -728,7 +787,6 @@ int main(int argc, char** argv)
     ROS_INFO_NAMED("Robothon", "Visualizing plan - moving back to home position (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
 
     move_group.execute(trajectory8);
-
     sleep(2);
 
 
@@ -777,6 +835,8 @@ int main(int argc, char** argv)
 
     sleep(2);
 
+    /////////////////////////////////////////////////////////////////////////
+    // start: Loop here to position the battery in the centre of the gripper
 
     // close the gripper to the maximum value of rPR = 255
     // rGTO = 1 allows the robot to perform an action
@@ -785,7 +845,7 @@ int main(int argc, char** argv)
     outputControlValues.rPR = 230;
     outputControlValues.rFR = 200;
     Robotiq2FGripperArgPub.publish(outputControlValues);
-    std::cout << "OPEN GRIPPER" << std::endl; 
+    std::cout << "CLOSE GRIPPER" << std::endl; 
 
     // wait until the activation action is completed to continue with the next action
 //        while( gripperStatus.gOBJ != 3 && touchDetected == false )
@@ -794,6 +854,10 @@ int main(int argc, char** argv)
     }
 
     printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+
+
+    // end: Loop here to position the battery in the centre of the gripper
+    /////////////////////////////////////////////////////////////////////////
 
 
     sleep(2);
