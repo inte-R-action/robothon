@@ -1,0 +1,10 @@
+lcd:1
+switch:2  
+socket:3
+lancable:4
+pin:5
+batteryplace:6
+blue_button:7
+red_button:8
+batteryholder:9
+key:10
