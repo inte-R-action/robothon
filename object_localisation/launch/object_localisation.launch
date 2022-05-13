@@ -5,10 +5,10 @@
   <arg name="task" default="assemble_complex_box" />
   <arg name="classifier" default="one" />
 
-  <node name="run_object_localisation" pkg="object_localisation" type="run_object_localisation.py" respawn="false" output="screen">
+  <node name="postgresql_node" pkg="object_localisation" type="postgresql_node.py" respawn="false" output="screen">
   </node>
 
-  <node name="balloon_test" pkg="object_localisation" type="balloon_test.py" respawn="false" output="screen">
+  <node name="object_ros_publisher" pkg="object_localisation" type="object_ros_publisher.py" respawn="false" output="screen">
   </node>
 
   <node pkg="tf" type="static_transform_publisher" name="baselink_pub" args="0 0 0 0 0 0 1 world base_link 100" />
