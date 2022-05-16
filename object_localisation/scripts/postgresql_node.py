@@ -22,8 +22,8 @@ tables = [['detected_objects', ["identification SERIAL PRIMARY KEY",
                                 "obj_name VARCHAR(255) NOT NULL",
                                 "confidence FLOAT",
                                 "rotation FLOAT",
-                                "center_x INTEGER",
-                                "center_y INTEGER",
+                                "center_x FLOAT",
+                                "center_y FLOAT",
                                 "distance FLOAT"]]]
 
 def sys_stat_callback(data):

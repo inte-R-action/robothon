@@ -53,7 +53,7 @@ class Mask_Rcnn_object_detection():
           # setting for txt on picture          
           self.font= cv2.FONT_HERSHEY_COMPLEX_SMALL
           self.font_scale=1
-          self.font_color = np.random.randint(0, 255, (len(self.object_names)*3, 3) )
+          self.font_color = [(0,255,255), (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 0, 30), (255, 255, 0), (227,207,87), (255,97,3), (178,58,238), (255,255,255), (105,139,34)]#np.random.randint(0, 255, (len(self.object_names)*3, 3) )
           self.font_width=1
 
 
@@ -93,7 +93,7 @@ class Mask_Rcnn_object_detection():
               obj_score=scores[a]
               obj_score=round(obj_score, 3)# round decimal float point up to 3 
               # randomm color to show each object
-              c= [int(self.font_color[a-1,0]), int(self.font_color[a-1,1]) ,int(self.font_color[a-1,2])] 
+              c = self.font_color[self.object_names.index(class_names[a])] #[int(self.font_color[a-1,0]), int(self.font_color[a-1,1]) ,int(self.font_color[a-1,2])] 
 
               # draw minimum area bounding box around each object
               cv2.drawContours(image, [bounding_Boxes[a]], -1, c, 4) 
