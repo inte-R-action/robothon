@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(gripper_actions)
+project(gripper_actions_test)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -41,7 +41,8 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 add_message_files(
   FILES
   processArguments.msg
-  gripperControlParameters.msg
+  icmDataMsg.msg
+#   Message2.msg
 )
 
 
@@ -59,15 +60,14 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-set(THIS_PACKAGE_INCLUDE_DIRS
+#set(THIS_PACKAGE_INCLUDE_DIRS
 #  interactivity/include
-)
+#)
 
 catkin_package(
   LIBRARIES
     interactivity_utils
-  INCLUDE_DIRS
-    include
+#  INCLUDE_DIRS
 #    ${THIS_PACKAGE_INCLUDE_DIRS}
   CATKIN_DEPENDS
     moveit_core
@@ -79,9 +79,11 @@ catkin_package(
 )
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
 
-add_executable(${PROJECT_NAME} src/gripper_actions.cpp)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+add_executable(${PROJECT_NAME} src/gripper_actions_test.cpp)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+

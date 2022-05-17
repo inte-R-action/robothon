@@ -132,9 +132,9 @@ void velostatSensorCallback(const std_msgs::Float32MultiArray::ConstPtr& msg)
     if( robotRepositionReady == true )
     {
         cout << "reading velostat" << endl;
-        if( avgVelostatGripper[0] >= 7.0 || avgVelostatGripper[1] >= 7.0 || avgVelostatGripper[2] >= 7.0 )
+        if( avgVelostatGripper[0] >= 5.0 || avgVelostatGripper[1] >= 5.0 || avgVelostatGripper[2] >= 5.0 )
         {
-            if( avgVelostatGripper[0] >= 7.0)
+            if( avgVelostatGripper[0] >= 5.0)
             {
 
                 if( avgVelostatGripper[0] >= avgVelostatGripper[1] )
@@ -145,7 +145,7 @@ void velostatSensorCallback(const std_msgs::Float32MultiArray::ConstPtr& msg)
     //                repositionRobot = "left";
                 }
             }
-            else if( avgVelostatGripper[2] >= 7.0)
+            else if( avgVelostatGripper[2] >= 5.0)
             {
 
                 if( avgVelostatGripper[2] >= avgVelostatGripper[1] )
@@ -186,7 +186,7 @@ void velostatSensorCallback(const std_msgs::Float32MultiArray::ConstPtr& msg)
         cout << "previous values: " << previousVelostatValues[0] << endl;
         cout << "current values: " << msg->data[3] << endl;
 
-        if( ( msg->data[3] >= 14 ) ) //|| ( msg->data[4] >= 12.0 ) )
+        if( ( msg->data[3] >= 15 ) ) //|| ( msg->data[4] >= 12.0 ) )
         {
             if( ( ( msg->data[3] - previousVelostatValues[0] ) < 0 ) ) // || ( ( msg->data[4] - previousVelostatValues[1] ) < 0 ) )
             {
@@ -404,8 +404,8 @@ int main(int argc, char** argv)
             // rGTO = 1 allows the robot to perform an action
             outputControlValues.rGTO = 1;
             outputControlValues.rSP = 100;
-            outputControlValues.rPR = 245;
-            outputControlValues.rFR = 220;
+            outputControlValues.rPR = 225;
+            outputControlValues.rFR = 200;
             Robotiq2FGripperArgPub.publish(outputControlValues);
             std::cout << "CLOSE GRIPPER" << std::endl; 
 
@@ -416,15 +416,12 @@ int main(int argc, char** argv)
 
             printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
 
-            sleep(0.1);
+//            sleep(0.1);
 
-//            robotRepositionReady = true;
-
-//            string nextRobotReposition = repositionRobot;
 
             robotRepositionReady = true;
 
-            sleep(1.0);
+            sleep(1.0); // works with 1.0 sec sleep
 
             cout << "Left column: " << avgVelostatGripper[0] << endl;
             cout << "Middle column: " << avgVelostatGripper[1] << endl;
@@ -474,7 +471,7 @@ int main(int argc, char** argv)
                 outputControlValues.rGTO = 0;
                 Robotiq2FGripperArgPub.publish(outputControlValues);
                 std::cout << "STANDBY GRIPPER" << std::endl; 
-                sleep(1);
+                sleep(1.0);
 
                 // open gripper for repositioning battery
                 // rGTO = 1 allows the robot to perform an action
@@ -492,7 +489,7 @@ int main(int argc, char** argv)
 
                 printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
 
-                sleep(0.1);
+//                sleep(0.1);
             }
 
 //            move_group.setStartState(*move_group.getCurrentState());

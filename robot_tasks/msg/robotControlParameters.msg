@@ -1,0 +1,16 @@
+string action
+int32 position
+int32 speed
+int32 force
+bool forceDetection
+float32 incrementXaxis
+float32 incrementYaxis
+float32 incrementZaxis
+float32 shoulder_pan_value
+float32 shoulder_lift_value
+float32 elbow_value
+float32 wrist_1_value
+float32 wrist_2_value
+float32 wrist_3_value
+geometry_msgs/Pose robotPose
+float32[6] robotJoints
