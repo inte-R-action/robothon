@@ -169,7 +169,7 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}
 		gripperActionsReady = false;
-		sleep(3);
+//		sleep(3);
 
 		// activate the gripper using default values
 		cout << "gripper action: activate" << endl;
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-		sleep(3);
+//		sleep(3);
 
 		// open the gripper without force detection
 		cout << "gripper action: open" << endl;
@@ -199,7 +199,7 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-		sleep(1);
+//		sleep(1);
     
 		// close the gripper with force detection
 		cout << "gripper action: close" << endl;
@@ -214,53 +214,14 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-		sleep(1);
-
-/*	
-		// send robot to home position
-		cout << "robot action: moveToHomePosition" << endl;
-		robot_actions_msg.action = "moveToHomePosition";
-		robot_actions_pub.publish(robot_actions_msg);
-		sleep(2);
-	
-		// task: press blue button
-		// move robot to correct pose
-		robot_actions_msg.action = "moveDown";
-		robot_actions_msg.position = 0;
-		robot_actions_msg.speed = 0;
-		robot_actions_msg.force = 0;
-		robot_actions_msg.forceDetection = 0;
-		robot_actions_msg.incrementXaxis = 0;
-		robot_actions_msg.incrementYaxis = 0;
-		robot_actions_msg.incrementZaxis = 0.010;
-		robot_actions_pub.publish(robot_actions_msg);
-		sleep(10);
-		// move robot to the correct gripper position
-		// move robot down (with force detection enable) to press the blue button
-		// move robot up
-
-		robot_actions_msg.action = "moveDown";
-		robot_actions_msg.position = 0;
-		robot_actions_msg.speed = 0;
-		robot_actions_msg.force = 0;
-		robot_actions_msg.forceDetection = true;
-		robot_actions_msg.incrementXaxis = 0;
-		robot_actions_msg.incrementYaxis = 0;
-		robot_actions_msg.incrementZaxis = 0.030;
-		robot_actions_pub.publish(robot_actions_msg);
-		sleep(10);
-
-		// check if it is possible to run two copies of the robot libraries
-		geometry_msgs::Pose currentPose = move_group.getCurrentPose().pose;
-		cout << "Current x, y, z position: " << currentPose.position.x << ", " << currentPose.position.y << ", " << currentPose.position.z << endl;
-*/
+//		sleep(1);
 
         /****************************************************/
         // Begining of task 1: box localisation and press blue button
 
 		// send robot to home position
 		cout << "robot action: moveToHomePosition" << endl;
-        sleep(1);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToHomePosition";
 		robot_actions_pub.publish(robot_actions_msg);
     	while( !robotActionsReady )
@@ -268,11 +229,10 @@ int main(int argc, char** argv)
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
-//		sleep(1);
 
         // move robot in x and y position on the blue button
 		cout << "robot action: move to x and y positions" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -291,7 +251,7 @@ int main(int argc, char** argv)
 
         // move robot down on z axis
 		cout << "robot action: move down on z axis" << endl;
-        sleep(1);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -309,8 +269,8 @@ int main(int argc, char** argv)
 //		sleep(1);
 
 		// send robot to home position
-        sleep(2);
 		cout << "robot action: moveToHomePosition" << endl;
+        sleep(0.5);
 		robot_actions_msg.action = "moveToHomePosition";
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -328,7 +288,7 @@ int main(int argc, char** argv)
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move to x and y positions" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -346,7 +306,7 @@ int main(int argc, char** argv)
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move down, detect force" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -364,7 +324,7 @@ int main(int argc, char** argv)
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move down, no force detection" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -382,7 +342,7 @@ int main(int argc, char** argv)
 
        // move robot in x and y position on the blue button
 		cout << "robot action: slide on lid" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -400,7 +360,7 @@ int main(int argc, char** argv)
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move robot up" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -418,7 +378,7 @@ int main(int argc, char** argv)
  
       // move robot in x and y position on the blue button
 		cout << "robot action: rotate end effector" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToJoints";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -453,11 +413,11 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-		sleep(1);
+//		sleep(1);
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move down, detect force" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -486,11 +446,11 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-		sleep(1);
+//		sleep(1);
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move up" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -507,8 +467,8 @@ int main(int argc, char** argv)
 		robotActionsReady = false;
 
 		// send robot to home position
-        sleep(2);
 		cout << "robot action: moveToHomePosition" << endl;
+        sleep(0.5);
 		robot_actions_msg.action = "moveToHomePosition";
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -519,7 +479,7 @@ int main(int argc, char** argv)
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move down to table" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToCartesian";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
@@ -548,11 +508,11 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-		sleep(1);
+//		sleep(1);
 
 		// send robot to home position
-        sleep(2);
 		cout << "robot action: moveToHomePosition" << endl;
+        sleep(0.5);
 		robot_actions_msg.action = "moveToHomePosition";
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -563,7 +523,7 @@ int main(int argc, char** argv)
 
       // move robot in x and y position on the blue button
 		cout << "robot action: rotate end effector to original orientation" << endl;
-        sleep(2);
+        sleep(0.5);
 		robot_actions_msg.action = "moveToJoints";
 		robot_actions_msg.position = 0;
 		robot_actions_msg.speed = 0;
