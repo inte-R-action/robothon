@@ -66,7 +66,7 @@ void robotControlParametersCallback(const robot_actions::robotControlParameters:
     robot_action_mode.incrementXaxis = msg->incrementXaxis;
     robot_action_mode.incrementYaxis = msg->incrementYaxis;
     robot_action_mode.incrementZaxis = msg->incrementZaxis;
-//	robot_action_mode.robotJoints = msg->robotJoints;
+	robot_action_mode.robotJoints = msg->robotJoints;
 }
 
 void ftSensorCallback(const robotiq_ft_sensor::ft_sensor& msg)
@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 
     // connection of publisher and subscriber with the Robotiq controller from ROS Industrial
     ros::Subscriber robotControlParametersSub = node_handle.subscribe<robot_actions::robotControlParameters>("robot_actions", 1, robotControlParametersCallback);
-    ros::Publisher robotActionStatusPub = node_handle.advertise<std_msgs::Bool>("robotActionStatus", 1000);
+    ros::Publisher robotActionStatusPub = node_handle.advertise<std_msgs::Bool>("robot_actions_status", 1000);
 
     ros::Subscriber RobotiqFTSensor = node_handle.subscribe("robotiq_ft_sensor", 1000, ftSensorCallback);
     ros::ServiceClient clientFTSensor = node_handle.serviceClient<robotiq_ft_sensor::sensor_accessor>("robotiq_ft_sensor_acc");
@@ -193,6 +193,8 @@ int main(int argc, char** argv)
             homePositionPose = move_group.getCurrentPose().pose;
 
             msgRobotActionStatus.data = true;
+            robotActionStatusPub.publish(msgRobotActionStatus);
+            sleep(0.5);
 
             robot_action_mode.action = "empty";
             robot_action_mode.position = 0;
@@ -201,6 +203,12 @@ int main(int argc, char** argv)
             robot_action_mode.incrementXaxis = 0;
             robot_action_mode.incrementYaxis = 0;
             robot_action_mode.incrementZaxis = 0;
+			robot_action_mode.robotJoints[0] = 0.0;
+			robot_action_mode.robotJoints[1] = 0.0;
+			robot_action_mode.robotJoints[2] = 0.0;
+			robot_action_mode.robotJoints[3] = 0.0;
+			robot_action_mode.robotJoints[4] = 0.0;
+			robot_action_mode.robotJoints[5] = 0.0;
 /*			robot_action_mode.shoulder_pan_value = 0.0;
 			robot_action_mode.shoulder_lift_value = 0.0;
 			robot_action_mode.elbow_value = 0.0;
@@ -372,10 +380,15 @@ int main(int argc, char** argv)
                 clientSpeedSlider.call(set_speed_frac);   
 
 				msgRobotActionStatus.data = true;
+                robotActionStatusPub.publish(msgRobotActionStatus);
+                sleep(0.5);
+
             }
             else
             {
 				msgRobotActionStatus.data = false;
+                robotActionStatusPub.publish(msgRobotActionStatus);
+                sleep(0.5);
                 cout << "Home position has not been set" << endl;
             }
 
@@ -386,6 +399,12 @@ int main(int argc, char** argv)
             robot_action_mode.incrementXaxis = 0;
             robot_action_mode.incrementYaxis = 0;
             robot_action_mode.incrementZaxis = 0;
+			robot_action_mode.robotJoints[0] = 0.0;
+			robot_action_mode.robotJoints[1] = 0.0;
+			robot_action_mode.robotJoints[2] = 0.0;
+			robot_action_mode.robotJoints[3] = 0.0;
+			robot_action_mode.robotJoints[4] = 0.0;
+			robot_action_mode.robotJoints[5] = 0.0;
         }
         else if( robot_action_mode.action == "moveToCartesian" )    // move the robot to specific x, y, z position
         {
@@ -394,15 +413,16 @@ int main(int argc, char** argv)
                 // prepare z steps for sensor exploration
 				float incrementXaxis = 0.0;
 				float incrementYaxis = 0.0;
-                float incrementZaxis = 0.078;
+                float incrementZaxis = 0.0;
                 
-                if( robot_action_mode.forceDetection == false )
-                {
-                    incrementZaxis = robot_action_mode.incrementZaxis;
-                }
+//                if( robot_action_mode.forceDetection == false )
+//                {
+//                    incrementZaxis = robot_action_mode.incrementZaxis;
+//                }
 
                 incrementXaxis = robot_action_mode.incrementXaxis;
                 incrementYaxis = robot_action_mode.incrementYaxis;
+                incrementZaxis = robot_action_mode.incrementZaxis;
 
                 move_group.setStartState(*move_group.getCurrentState());
                 geometry_msgs::Pose currentPose = move_group.getCurrentPose().pose;
@@ -560,10 +580,14 @@ int main(int argc, char** argv)
                 clientSpeedSlider.call(set_speed_frac);   
 
 				msgRobotActionStatus.data = true;
+                robotActionStatusPub.publish(msgRobotActionStatus);
+                sleep(0.5);
             }
             else
             {
-				msgRobotActionStatus.data = false;
+//				msgRobotActionStatus.data = false;
+//                robotActionStatusPub.publish(msgRobotActionStatus);
+//                sleep(0.5);
                 cout << "Home position has not been set" << endl;
             }
 
@@ -574,6 +598,12 @@ int main(int argc, char** argv)
             robot_action_mode.incrementXaxis = 0;
             robot_action_mode.incrementYaxis = 0;
             robot_action_mode.incrementZaxis = 0;
+			robot_action_mode.robotJoints[0] = 0.0;
+			robot_action_mode.robotJoints[1] = 0.0;
+			robot_action_mode.robotJoints[2] = 0.0;
+			robot_action_mode.robotJoints[3] = 0.0;
+			robot_action_mode.robotJoints[4] = 0.0;
+			robot_action_mode.robotJoints[5] = 0.0;
         }
         else if( robot_action_mode.action == "moveToPose" )    // move robot to specific pose
         {
@@ -586,8 +616,15 @@ int main(int argc, char** argv)
             robot_action_mode.incrementXaxis = 0;
             robot_action_mode.incrementYaxis = 0;
             robot_action_mode.incrementZaxis = 0;
+			robot_action_mode.robotJoints[0] = 0.0;
+			robot_action_mode.robotJoints[1] = 0.0;
+			robot_action_mode.robotJoints[2] = 0.0;
+			robot_action_mode.robotJoints[3] = 0.0;
+			robot_action_mode.robotJoints[4] = 0.0;
+			robot_action_mode.robotJoints[5] = 0.0;
+
         }
-/*        else if( robot_action_mode.action == "moveToJoints" )    // move robot to specific joint configuration
+        else if( robot_action_mode.action == "moveToJoints" )    // move robot to specific joint configuration
         {
             if( setHomePositionReady == true )
             {
@@ -596,7 +633,13 @@ int main(int argc, char** argv)
 				// start moving robot to home position
 				std::map<std::string, double> jointPositions;
 				bool success = false;
-*/
+
+                current_state = move_group.getCurrentState();
+                current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+                for( int i = 0; i < 6; i++ )
+                    cout << "Current Joint value [" << i << "] = " << joint_group_positions[i] << ", Next Joint value [" << i << "] = " << robot_action_mode.robotJoints[i] << endl;
+
+
 /*
 				// move robot to home position
 				double shoulder_pan_value = robot_action_mode.shoulder_pan_value;
@@ -614,12 +657,12 @@ int main(int argc, char** argv)
 				jointPositions["wrist_2_joint"] = wrist_2_value * 3.1416 / 180;
 				jointPositions["wrist_3_joint"] = wrist_3_value * 3.1416 / 180;
 */
-/*				jointPositions["shoulder_pan_joint"] = robot_action_mode.robotJoints[0] * 3.1416 / 180;	// (deg*PI/180)
-				jointPositions["shoulder_lift_joint"] = robot_action_mode.robotJoints[1] * 3.1416 / 180;
-				jointPositions["elbow_joint"] = robot_action_mode.robotJoints[2] * 3.1416 / 180;
-				jointPositions["wrist_1_joint"] = robot_action_mode.robotJoints[3] * 3.1416 / 180;
-				jointPositions["wrist_2_joint"] = robot_action_mode.robotJoints[4] * 3.1416 / 180;
-				jointPositions["wrist_3_joint"] = robot_action_mode.robotJoints[5] * 3.1416 / 180;
+				jointPositions["shoulder_pan_joint"] = joint_group_positions[0] + (robot_action_mode.robotJoints[0] * 3.1416 / 180);	// (deg*PI/180)
+				jointPositions["shoulder_lift_joint"] = joint_group_positions[1] + (robot_action_mode.robotJoints[1] * 3.1416 / 180);
+				jointPositions["elbow_joint"] = joint_group_positions[2] + (robot_action_mode.robotJoints[2] * 3.1416 / 180);
+				jointPositions["wrist_1_joint"] = joint_group_positions[3] + (robot_action_mode.robotJoints[3] * 3.1416 / 180);
+				jointPositions["wrist_2_joint"] = joint_group_positions[4] + (robot_action_mode.robotJoints[4] * 3.1416 / 180);
+				jointPositions["wrist_3_joint"] = joint_group_positions[5] + (robot_action_mode.robotJoints[5] * 3.1416 / 180);
 
 				move_group.setJointValueTarget(jointPositions);
 
@@ -631,6 +674,21 @@ int main(int argc, char** argv)
 				move_group.setStartState(*move_group.getCurrentState());
 				homePositionPose = move_group.getCurrentPose().pose;
 				msgRobotActionStatus.data = true;
+                robotActionStatusPub.publish(msgRobotActionStatus);
+
+                robot_action_mode.action = "empty";
+                robot_action_mode.position = 0;
+                robot_action_mode.speed = 0;
+                robot_action_mode.forceDetection = 0;
+                robot_action_mode.incrementXaxis = 0;
+                robot_action_mode.incrementYaxis = 0;
+                robot_action_mode.incrementZaxis = 0;
+			    robot_action_mode.robotJoints[0] = 0.0;
+			    robot_action_mode.robotJoints[1] = 0.0;
+			    robot_action_mode.robotJoints[2] = 0.0;
+			    robot_action_mode.robotJoints[3] = 0.0;
+			    robot_action_mode.robotJoints[4] = 0.0;
+			    robot_action_mode.robotJoints[5] = 0.0;
 			}
             else
             {
@@ -646,12 +704,6 @@ int main(int argc, char** argv)
             robot_action_mode.incrementXaxis = 0;
             robot_action_mode.incrementYaxis = 0;
             robot_action_mode.incrementZaxis = 0;
-			robot_action_mode.shoulder_pan_value = 0.0;
-			robot_action_mode.shoulder_lift_value = 0.0;
-			robot_action_mode.elbow_value = 0.0;
-			robot_action_mode.wrist_1_value = 0.0;
-			robot_action_mode.wrist_2_value = 0.0;
-			robot_action_mode.wrist_3_value = 0.0;
 			robot_action_mode.robotJoints[0] = 0.0;
 			robot_action_mode.robotJoints[1] = 0.0;
 			robot_action_mode.robotJoints[2] = 0.0;
@@ -661,10 +713,11 @@ int main(int argc, char** argv)
 			
             sleep(2);
         }
-*/        else
+        else
         {
             msgRobotActionStatus.data = false;
             robot_action_mode.action = "empty";
+            cout << "No robot action found - check typing error - check robot action name" << endl;
         }    
     }
 
