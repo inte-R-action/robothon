@@ -199,7 +199,7 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-//		sleep(1);
+		sleep(1);
     
 		// close the gripper with force detection
 		cout << "gripper action: close" << endl;
@@ -214,7 +214,7 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-//		sleep(1);
+		sleep(1);
 
         /****************************************************/
         // Begining of task 1: box localisation and press blue button
@@ -413,7 +413,7 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-//		sleep(1);
+		sleep(1);
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move down, detect force" << endl;
@@ -446,7 +446,7 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-//		sleep(1);
+		sleep(1);
 
        // move robot in x and y position on the blue button
 		cout << "robot action: move up" << endl;
@@ -508,7 +508,7 @@ int main(int argc, char** argv)
 			cout << "gripperActionReady = " << gripperActionsReady << endl;
 		}	
 		gripperActionsReady = false;
-//		sleep(1);
+		sleep(1);
 
 		// send robot to home position
 		cout << "robot action: moveToHomePosition" << endl;
