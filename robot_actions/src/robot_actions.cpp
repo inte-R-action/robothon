@@ -159,6 +159,9 @@ int main(int argc, char** argv)
         sleep(1);
         if( robot_action_mode.action == "moveToHomePosition" )    // define the home position needed to enable the rest of actions
         {
+            current_state = move_group.getCurrentState();
+            current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+
             move_group.setStartState(*move_group.getCurrentState());
 
             // move robot to home position
@@ -576,7 +579,7 @@ int main(int argc, char** argv)
                 currentPose = move_group.getCurrentPose().pose;
                 cout << "Target x, y, z position: " << currentPose.position.x << ", " << currentPose.position.y << ", " << currentPose.position.z << endl;
 
-                set_speed_frac.request.speed_slider_fraction = 0.80; // change velocity
+                set_speed_frac.request.speed_slider_fraction = 0.20; // change velocity
                 clientSpeedSlider.call(set_speed_frac);   
 
 				msgRobotActionStatus.data = true;
@@ -637,7 +640,7 @@ int main(int argc, char** argv)
                 current_state = move_group.getCurrentState();
                 current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
                 for( int i = 0; i < 6; i++ )
-                    cout << "Current Joint value [" << i << "] = " << joint_group_positions[i] << ", Next Joint value [" << i << "] = " << robot_action_mode.robotJoints[i] << endl;
+                    cout << "Current Joint value [" << i << "] = " << ( joint_group_positions[i] * 180 / 3.1416 )<< ", Next Joint value increment [" << i << "] = " << robot_action_mode.robotJoints[i] << endl;
 
 
 /*
@@ -672,7 +675,13 @@ int main(int argc, char** argv)
 				move_group.execute(plan);
 
 				move_group.setStartState(*move_group.getCurrentState());
-				homePositionPose = move_group.getCurrentPose().pose;
+//				homePositionPose = move_group.getCurrentPose().pose;
+
+                current_state = move_group.getCurrentState();
+                current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+                for( int i = 0; i < 6; i++ )
+                    cout << "Updated joint value [" << i << "] = " << ( joint_group_positions[i] * 180 / 3.1416 ) << endl; 
+
 				msgRobotActionStatus.data = true;
                 robotActionStatusPub.publish(msgRobotActionStatus);
 
