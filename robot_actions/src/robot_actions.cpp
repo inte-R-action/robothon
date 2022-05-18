@@ -137,7 +137,7 @@ int main(int argc, char** argv)
     move_group.setMaxAccelerationScalingFactor(0.50);
 
     ur_msgs::SetSpeedSliderFraction set_speed_frac;
-    set_speed_frac.request.speed_slider_fraction = 0.20; // change velocity in the slider of teach pendant
+    set_speed_frac.request.speed_slider_fraction = 0.40; // change velocity in the slider of teach pendant
     clientSpeedSlider.call(set_speed_frac);   
 
     // start moving robot to home position
@@ -579,7 +579,7 @@ int main(int argc, char** argv)
                 currentPose = move_group.getCurrentPose().pose;
                 cout << "Target x, y, z position: " << currentPose.position.x << ", " << currentPose.position.y << ", " << currentPose.position.z << endl;
 
-                set_speed_frac.request.speed_slider_fraction = 0.20; // change velocity
+                set_speed_frac.request.speed_slider_fraction = 0.40; // change velocity
                 clientSpeedSlider.call(set_speed_frac);   
 
 				msgRobotActionStatus.data = true;
