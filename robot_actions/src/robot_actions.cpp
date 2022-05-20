@@ -137,8 +137,9 @@ int main(int argc, char** argv)
     move_group.setMaxAccelerationScalingFactor(0.50);
 
     ur_msgs::SetSpeedSliderFraction set_speed_frac;
-    set_speed_frac.request.speed_slider_fraction = 0.40; // change velocity in the slider of teach pendant
+    set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity in the slider of teach pendant
     clientSpeedSlider.call(set_speed_frac);   
+    sleep(0.1);
 
     // start moving robot to home position
     std::map<std::string, double> homePosition;
@@ -156,7 +157,11 @@ int main(int argc, char** argv)
     while( ros::ok() )
     {
         cout << "Waiting for actions..." << endl;
-        sleep(1);
+        //sleep(1);
+        set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity in the slider of teach pendant
+        clientSpeedSlider.call(set_speed_frac);   
+        sleep(0.1);
+
         if( robot_action_mode.action == "moveToHomePosition" )    // define the home position needed to enable the rest of actions
         {
             current_state = move_group.getCurrentState();
@@ -219,7 +224,8 @@ int main(int argc, char** argv)
 			robot_action_mode.wrist_2_value = 0.0;
 			robot_action_mode.wrist_3_value = 0.0;
 */
-            sleep(2);
+            //sleep(2);
+            sleep(0.1);
         }
         else if( robot_action_mode.action == "moveDown" )    // move the robot down
         {
@@ -259,6 +265,7 @@ int main(int argc, char** argv)
 
                 set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
                 clientSpeedSlider.call(set_speed_frac);   
+                sleep(0.1);
 
                 if( robot_action_mode.forceDetection == false )
                 {
@@ -379,8 +386,8 @@ int main(int argc, char** argv)
                     }
                 }
 
-                set_speed_frac.request.speed_slider_fraction = 0.80; // change velocity
-                clientSpeedSlider.call(set_speed_frac);   
+                set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity
+                clientSpeedSlider.call(set_speed_frac);
 
 				msgRobotActionStatus.data = true;
                 robotActionStatusPub.publish(msgRobotActionStatus);
@@ -454,15 +461,20 @@ int main(int argc, char** argv)
 
                 visual_tools.trigger();
 
-                set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
-                clientSpeedSlider.call(set_speed_frac);   
-
+/*                set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
+                clientSpeedSlider.call(set_speed_frac);
+                sleep(0.1);
+*/
                 if( robot_action_mode.forceDetection == false )
                 {
                     move_group.execute(trajectory);
                 }
                 else
                 {
+                    set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
+                    clientSpeedSlider.call(set_speed_frac);
+                    sleep(0.1);
+
                     bool maxThresholdZ = false;
                     bool contactZ = false;
                     bool contactPressure = false;
@@ -529,7 +541,7 @@ int main(int argc, char** argv)
                     cout << "updatedMaxForceY = " << updatedMaxForceY << endl;
                     cout << "updatedMaxForceZ = " << updatedMaxForceZ << endl;
 
-                    sleep(0.5);
+                    //sleep(0.5);
 
                     srv.request.command_id = srv.request.COMMAND_SET_ZERO; // set force and torque values of the FT sensor 0 
                     if( clientFTSensor.call( srv ) )
@@ -565,11 +577,12 @@ int main(int argc, char** argv)
                             move_group.execute(trajectory);
     //                        move_group.asyncExecute(trajectory);
 
-                            sleep(1.0);
+                            //sleep(1.0);
                             cout << "==================================================" << endl;
                             cout << "updatedMaxForceZ = " << updatedMaxForceZ << endl;
                             cout << "maximum contact force detected in Z = " << currentForceZ << endl;
                             cout << "==================================================" << endl;
+                            sleep(2);
                         }
 
                         currentPose = move_group.getCurrentPose().pose;
@@ -579,8 +592,9 @@ int main(int argc, char** argv)
                 currentPose = move_group.getCurrentPose().pose;
                 cout << "Target x, y, z position: " << currentPose.position.x << ", " << currentPose.position.y << ", " << currentPose.position.z << endl;
 
-                set_speed_frac.request.speed_slider_fraction = 0.40; // change velocity
+                set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity
                 clientSpeedSlider.call(set_speed_frac);   
+                sleep(0.1);
 
 				msgRobotActionStatus.data = true;
                 robotActionStatusPub.publish(msgRobotActionStatus);
@@ -632,6 +646,10 @@ int main(int argc, char** argv)
             if( setHomePositionReady == true )
             {
 				move_group.setStartState(*move_group.getCurrentState());
+
+                set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity
+                clientSpeedSlider.call(set_speed_frac);   
+                sleep(0.1);
 
 				// start moving robot to home position
 				std::map<std::string, double> jointPositions;
@@ -720,7 +738,8 @@ int main(int argc, char** argv)
 			robot_action_mode.robotJoints[4] = 0.0;
 			robot_action_mode.robotJoints[5] = 0.0;
 			
-            sleep(2);
+//            sleep(2);
+            sleep(0.1);
         }
         else
         {
