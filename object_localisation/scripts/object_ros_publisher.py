@@ -12,10 +12,11 @@ from database_funcs import database
 import pyrealsense2 as rs
 import pickle
 import pandas as pd
+import time
 ROOT_DIR = os.path.dirname(__file__)
 
 class obj_class:
-    def __init__(self, frame_id, queue=1):
+    def __init__(self, frame_id, queue=10):
         # frame_id=str, queue=int
         # Object message definitions
         self.obj_msg = object_state()
@@ -60,10 +61,13 @@ class object_localiser:
         self.predictions = []
         self.obj_tab_col_names, _ = self.db.query_table('detected_objects', rows=0)
         self.cameraInfo = rs.pyrealsense2.intrinsics()
-        self.cameraInfo = pickle.load( open( ROOT_DIR+"/cameraInfo.p", "rb" ) )
+        file = open( ROOT_DIR+"/cameraInfo.p", "rb" )
+        self.cameraInfo = pickle.load(file)
+        file.close()
         print(self.cameraInfo)
 
     def cam2rob_transform(self, pose):
+        print(pose)
         p_in_base = None
         print(self.tf_listener_.getFrameStrings())
         if self.tf_listener_.frameExists('base_link') and self.tf_listener_.frameExists('camera_frame'):
@@ -73,29 +77,30 @@ class object_localiser:
             # p1.pose.orientation.w = 1.0    # Neutral orientation
             p_in_base = self.tf_listener_.transformPose("/base_link", pose)
 
+        print(p_in_base)
         return p_in_base
 
     def create_pose(self, x, y, angle, dist):
 
-        _intrinsics = rs.intrinsics()
-        _intrinsics.width = self.cameraInfo["width"]
-        _intrinsics.height = self.cameraInfo["height"]
-        _intrinsics.ppx = self.cameraInfo["ppx"]
-        _intrinsics.ppy = self.cameraInfo["ppy"]
-        _intrinsics.fx = self.cameraInfo["fx"]
-        _intrinsics.fy = self.cameraInfo["fy"]
-        _intrinsics.coeffs = self.cameraInfo["coeffs"]
-        ###_intrinsics.model = cameraInfo.distortion_model
-        #_intrinsics.model  = rs.distortion.none
-        #_intrinsics.coeffs = [i for i in cameraInfo.D]
-        result = rs.rs2_deproject_pixel_to_point(_intrinsics, [x, y], dist)
+        # _intrinsics = rs.intrinsics()
+        # _intrinsics.width = self.cameraInfo["width"]
+        # _intrinsics.height = self.cameraInfo["height"]
+        # _intrinsics.ppx = self.cameraInfo["ppx"]
+        # _intrinsics.ppy = self.cameraInfo["ppy"]
+        # _intrinsics.fx = self.cameraInfo["fx"]
+        # _intrinsics.fy = self.cameraInfo["fy"]
+        # _intrinsics.coeffs = self.cameraInfo["coeffs"]
+        # ###_intrinsics.model = cameraInfo.distortion_model
+        # #_intrinsics.model  = rs.distortion.none
+        # #_intrinsics.coeffs = [i for i in cameraInfo.D]
+        # result = rs.rs2_deproject_pixel_to_point(_intrinsics, [x, y], dist)
 
         p = PoseStamped()
         p.header.frame_id = "/camera_frame"
-        
-        p.pose.position.x = result[2]
-        p.pose.position.y = -result[0]
-        p.pose.position.z = -result[1]
+
+        p.pose.position.x = x#0.02#result[0]#result[2]
+        p.pose.position.y = y#0#result[1]#-result[0]
+        p.pose.position.z = dist#0#result[2]#-result[1]
         # Make sure the quaternion is valid and normalized
         angle = radians(angle+45)
         p.pose.orientation.x = sin(angle/2) * 1
@@ -116,13 +121,15 @@ class object_localiser:
             angle = row['rotation']
             dist = row['distance']
             print(x, y, row['obj_name'])
-            obj_cam_pose = self.create_pose(x, y, angle, dist)
-            obj_rob_pose = self.cam2rob_transform(obj_cam_pose)
-            
-            if obj_rob_pose is not None:
-                obj_id = row['obj_id']
-                obj_name = row['obj_name']
-                self.obj_pub.publish(obj_rob_pose, obj_id, obj_name)
+            if (x != 0) and (y != 0):
+                obj_cam_pose = self.create_pose(x, y, angle, dist)
+                #obj_rob_pose = self.cam2rob_transform(obj_cam_pose)
+                
+                if obj_cam_pose is not None:
+                    obj_id = row['obj_id']
+                    obj_name = row['obj_name']
+                    self.obj_pub.publish(obj_cam_pose, obj_id, obj_name)
+                    time.sleep(0.2)
     
     def read_database(self):
         col_names, data = self.db.query_table('detected_objects', 'all')
@@ -133,7 +140,7 @@ if __name__ == '__main__':
     try:
         localiser = object_localiser()
 
-        rate = rospy.Rate(1)
+        rate = rospy.Rate(0.5)
         while (not rospy.is_shutdown()):
             try:
                 localiser.run_localisation()

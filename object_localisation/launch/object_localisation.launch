@@ -11,8 +11,7 @@
   <node name="object_ros_publisher" pkg="object_localisation" type="object_ros_publisher.py" respawn="false" output="screen">
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" name="baselink_pub" args="0 0 0 0 0 0 1 world base_link 100" />
-  <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="0.065 0.037 0.082 0 0 0 1 base_link camera_frame 100" />
+  <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="0.065 0.037 0.082 0 0 0 1 ee_link camera_frame 100" />
 
 
 </launch>
