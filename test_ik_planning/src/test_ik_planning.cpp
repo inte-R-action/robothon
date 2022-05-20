@@ -74,13 +74,26 @@ void robotExecuteCallback(const moveit_msgs::ExecuteTrajectoryActionResult::Cons
 void objectDetectionCallback(const test_ik_planning::object_state::ConstPtr& msg)
 {
     if ( objectString != "" ){
-    if ( msg->Obj_type == objectString.substr(5) ){
-        object_state_msg.Id = msg->Id;
-        object_state_msg.Obj_type = msg->Obj_type;
-        object_state_msg.Pose = msg->Pose;
-        object_state_msg.Header = msg->Header;
+        try { 
+            std::string obj2find = objectString.substr(5);
+            if (msg->Obj_type == "new_view"){
+                object_state_msg.Id = msg->Id;
+                object_state_msg.Obj_type = msg->Obj_type;
+                object_state_msg.Pose = msg->Pose;
+                object_state_msg.Header = msg->Header;
+            }
+            else if ( msg->Obj_type == objectString.substr(5) ){
+                object_state_msg.Id = msg->Id;
+                object_state_msg.Obj_type = msg->Obj_type;
+                object_state_msg.Pose = msg->Pose;
+                object_state_msg.Header = msg->Header;
+            }
+        }
+        catch (...) { 
+            cout << "Error 2 with: " << objectString << endl;
+        }
+
     }
-}
 }
 
 // Map high level position to joint angles as seen on teach pendant
@@ -88,8 +101,8 @@ void objectDetectionCallback(const test_ik_planning::object_state::ConstPtr& msg
 struct jnt_angs{double angles[6];};
 std::map<std::string, jnt_angs> create_joint_pos(){
     std::map<std::string, jnt_angs> joint_positions;
-    joint_positions["home"] = {-8.49, -101.10, 55.46, -43.0, -90.0, 0.0};//{-11.75, -83.80, 47.90, -125.0, -90.0, 0.0};
-    joint_positions["look_for_objects"] = {-8.49, -101.10, 55.46, -43.0, -90.0, 0.0};
+    joint_positions["home"] = {-35.1, -107.4, 55.87, -40.0, -90.0, 325.96};//{-11.75, -83.80, 47.90, -125.0, -90.0, 0.0};
+    joint_positions["look_for_objects"] = {-35.1, -107.4, 55.87, -40.0, -90.0, 325.96};
     return joint_positions;
 };
 
@@ -146,7 +159,7 @@ class moveit_robot {
         bool plan_to_pose(geometry_msgs::Pose pose);
         void move_cartesian(double dist1, double dist2, double dist3);
         void basic_cartesian_move(double dist1, double dist2, double dist3);
-        geometry_msgs::Pose transform_pose(geometry_msgs::Pose input_pose);
+        geometry_msgs::Pose transform_pose(geometry_msgs::Pose input_pose, string frame);
     
     private:
         ros::NodeHandle nh_; // we will need this, to pass between "main" and constructor
@@ -575,7 +588,7 @@ bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose){
     return success;
 }
 
-geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose){
+geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose, string frame){
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
   geometry_msgs::Pose output_pose1;
@@ -585,7 +598,7 @@ geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose)
 
   while (ros::ok()){
     try{
-      transform1 = tfBuffer.lookupTransform("world", "camera_frame",
+      transform1 = tfBuffer.lookupTransform("world", frame,
                                  ros::Time(0));
     
       ROS_INFO("%s", transform1.child_frame_id.c_str());
@@ -755,12 +768,19 @@ void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 }
 
 
-geometry_msgs::Pose look_for_objects(string bring_cmd)
+geometry_msgs::Pose look_for_objects(string bring_cmd, moveit_robot &Robot)
 {
     // wait for message received?
     geometry_msgs::Pose object_pose;
-
-    std::string obj2find = bring_cmd.substr(5);
+    std::string obj2find;
+    try { 
+        obj2find = bring_cmd.substr(5);
+    }
+    catch (...) { 
+cout << "Error 1 with: " << bring_cmd << endl;
+obj2find = "Error";
+}
+    
     cout << "Looking for: " << obj2find << endl;
     while(ros::ok()){
         cout << "Looking for: " << obj2find << " detected: " << object_state_msg.Obj_type << endl;
@@ -768,6 +788,24 @@ geometry_msgs::Pose look_for_objects(string bring_cmd)
            object_pose = object_state_msg.Pose;
            return object_pose;
         }
+        else if ( object_state_msg.Obj_type == "new_view"){
+           object_pose = object_state_msg.Pose;
+            cout << "Found: " << object_pose << endl;
+            // Transform to world frame
+            geometry_msgs::Pose pose_base_obj = Robot.transform_pose(object_pose, "ee_link");
+            // Move to new position above object
+            geometry_msgs::Pose target_pose1;
+            target_pose1.orientation.x = pose_base_obj.orientation.x;
+            target_pose1.orientation.y = pose_base_obj.orientation.y;
+            target_pose1.orientation.z = pose_base_obj.orientation.z;
+            target_pose1.orientation.w = pose_base_obj.orientation.w;
+            target_pose1.position.x = pose_base_obj.position.x;
+            target_pose1.position.y = pose_base_obj.position.y;
+            target_pose1.position.z = 0.4;
+            ROS_INFO_STREAM("Target pose: \n" << target_pose1);
+            bool success;
+            success = Robot.plan_to_pose(target_pose1);
+        } 
         else{
             ros::Duration(1).sleep();
         }
@@ -789,10 +827,10 @@ bool find_object(string bring_cmd, std::map<std::string, double> &targetJoints, 
     bool success = false;
     while (not success and ros::ok()){
         // Look for object
-        geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd);
+        geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd, Robot);
         cout << "Found: " << pose_cam_obj << endl;
         // Transform to world frame
-        geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj);
+        geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj, "camera_frame");
         // Move to new position above object
         geometry_msgs::Pose target_pose1;
         target_pose1.orientation.x = pose_base_obj.orientation.x;
