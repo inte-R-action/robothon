@@ -225,7 +225,8 @@ int main(int argc, char** argv)
         cout << "2 - AA batteries " << endl;
         cout << "3 - coin battery" << endl;
         cout << "4 - ethernet cable" << endl;
-        cout << "5 - exit" << endl;
+        cout << "5 - key" << endl;
+        cout << "6 - exit" << endl;
 
         int taskNumber = 0;
         cin >> taskNumber;
@@ -2157,7 +2158,223 @@ int main(int argc, char** argv)
         }              
 
         }
+
         else if( taskNumber == 5 )
+        {
+             /****************************************************/
+        // Beginning of task 5: kesy task
+		    // send robot to home position
+		    cout << "robot action: moveToHomePosition" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToHomePosition";
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+            float keyCenterPosX = 0.246;
+            float keyCenterPosY = -0.0650; //-0.0665;
+            geometry_msgs::Pose homePosition = move_group.getCurrentPose().pose;
+
+            
+            // move robot 
+		    cout << "robot action: move to release position of objects" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToCartesian";
+		    robot_actions_msg.position = 0;
+		    robot_actions_msg.speed = 0;
+		    robot_actions_msg.force = 0;
+		    robot_actions_msg.forceDetection = false;
+    		robot_actions_msg.incrementXaxis = keyCenterPosX - homePosition.position.x;
+    		robot_actions_msg.incrementYaxis = keyCenterPosY - homePosition.position.y;
+		    robot_actions_msg.incrementZaxis = 0.0;
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+            int a = 0;
+            cout << "press to continue" << endl;            
+            cin >> a;
+
+            // rotate the robot's last joint to insert battery
+		    cout << "robot action: rotate end effector to insert battery" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToJoints";
+		    robot_actions_msg.position = 0;
+		    robot_actions_msg.speed = 0;
+		    robot_actions_msg.force = 0;
+		    robot_actions_msg.forceDetection = false;
+		    robot_actions_msg.incrementXaxis = 0.0;
+		    robot_actions_msg.incrementYaxis = 0.0;
+		    robot_actions_msg.incrementZaxis = 0.0;
+		    robot_actions_msg.robotJoints[0] = 0.0;
+		    robot_actions_msg.robotJoints[1] = 0.0;
+		    robot_actions_msg.robotJoints[2] = 0.0;
+		    robot_actions_msg.robotJoints[3] = 0.0;
+		    robot_actions_msg.robotJoints[4] = 0.0;
+       		robot_actions_msg.robotJoints[5] = -90.0; 
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+        // open gripper to sepcific distance to extract batteries
+		    cout << "gripper action: open gripper to release battery" << endl;
+		    gripper_actions_msg.action = "open";
+		    gripper_actions_msg.position = 170;
+		    gripper_actions_msg.speed = 50;
+		    gripper_actions_msg.force = 200;
+		    gripper_actions_msg.useContactDetection = false;
+		    gripper_actions_pub.publish(gripper_actions_msg);
+		    while( !gripperActionsReady )
+		    {
+			    cout << "gripperActionReady = " << gripperActionsReady << endl;
+		    }	
+		    gripperActionsReady = false;
+		    sleep(1);
+            
+            cout << "press to continue" << endl;            
+            cin >> a;
+
+            // move robot down
+		    cout << "robot action: move to release position of objects" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToCartesian";
+		    robot_actions_msg.position = 0;
+		    robot_actions_msg.speed = 0;
+		    robot_actions_msg.force = 0;
+		    robot_actions_msg.forceDetection = true;
+    		robot_actions_msg.incrementXaxis = 0.0;
+    		robot_actions_msg.incrementYaxis = 0.0;
+		    robot_actions_msg.incrementZaxis = -0.078;
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+            cout << "press to continue" << endl;            
+            cin >> a;
+
+            // move robot up
+		    cout << "robot action: move to release position of objects" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToCartesian";
+		    robot_actions_msg.position = 0;
+		    robot_actions_msg.speed = 0;
+		    robot_actions_msg.force = 0;
+		    robot_actions_msg.forceDetection = false;
+    		robot_actions_msg.incrementXaxis = 0.0;
+    		robot_actions_msg.incrementYaxis = 0.0;
+		    robot_actions_msg.incrementZaxis = 0.005;
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+            cout << "press to continue" << endl;            
+            cin >> a;
+
+            // open gripper to sepcific distance to extract batteries
+		    cout << "gripper action: open gripper to release battery" << endl;
+		    gripper_actions_msg.action = "open";
+		    gripper_actions_msg.position = 240;
+		    gripper_actions_msg.speed = 50;
+		    gripper_actions_msg.force = 220;
+		    gripper_actions_msg.useContactDetection = true;
+		    gripper_actions_pub.publish(gripper_actions_msg);
+		    while( !gripperActionsReady )
+		    {
+			    cout << "gripperActionReady = " << gripperActionsReady << endl;
+		    }	
+		    gripperActionsReady = false;
+		    sleep(1);
+
+            cout << "press to continue" << endl;            
+            cin >> a;
+
+            // move robot up
+		    cout << "robot action: move to release position of objects" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToCartesian";
+		    robot_actions_msg.position = 0;
+		    robot_actions_msg.speed = 0;
+		    robot_actions_msg.force = 0;
+		    robot_actions_msg.forceDetection = false;
+    		robot_actions_msg.incrementXaxis = 0.0;
+    		robot_actions_msg.incrementYaxis = 0.0;
+		    robot_actions_msg.incrementZaxis = 0.050;
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+            // rotate the robot's last joint to insert battery
+		    cout << "robot action: rotate end effector to insert battery" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToJoints";
+		    robot_actions_msg.position = 0;
+		    robot_actions_msg.speed = 0;
+		    robot_actions_msg.force = 0;
+		    robot_actions_msg.forceDetection = false;
+		    robot_actions_msg.incrementXaxis = 0.0;
+		    robot_actions_msg.incrementYaxis = 0.0;
+		    robot_actions_msg.incrementZaxis = 0.0;
+		    robot_actions_msg.robotJoints[0] = 0.0;
+		    robot_actions_msg.robotJoints[1] = 0.0;
+		    robot_actions_msg.robotJoints[2] = 0.0;
+		    robot_actions_msg.robotJoints[3] = 0.0;
+		    robot_actions_msg.robotJoints[4] = 0.0;
+       		robot_actions_msg.robotJoints[5] = 90.0; 
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+           cout << "press to continue" << endl;            
+            cin >> a;
+
+            geometry_msgs::Pose keytoLock = move_group.getCurrentPose().pose;
+            float lockCenterPosX = 0.3106;
+            float lockCenterPosY = -0.062;    
+            // move robot 
+		    cout << "robot action: move to release position of objects" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToCartesian";
+		    robot_actions_msg.position = 0;
+		    robot_actions_msg.speed = 0;
+		    robot_actions_msg.force = 0;
+		    robot_actions_msg.forceDetection = false;
+    		robot_actions_msg.incrementXaxis = lockCenterPosX - keytoLock.position.x;
+    		robot_actions_msg.incrementYaxis = lockCenterPosY - keytoLock.position.y;
+		    robot_actions_msg.incrementZaxis = 0.0;
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+           cout << "press to continue" << endl;            
+            cin >> a;
+
+        }
+
+        else if( taskNumber == 6 )
         {
             break;
         }
