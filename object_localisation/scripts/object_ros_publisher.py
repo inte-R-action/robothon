@@ -10,7 +10,6 @@ import traceback, sys
 import os
 from database_funcs import database
 import pyrealsense2 as rs
-import pickle
 import pandas as pd
 import time
 ROOT_DIR = os.path.dirname(__file__)
@@ -49,8 +48,7 @@ class obj_class:
         self.publisher.publish(self.obj_msg)
 
 
-
-class object_localiser:
+class object_transformer:
     def __init__(self):
         frame_id = 'Realsense_node'
         rospy.init_node(frame_id, anonymous=True)
@@ -60,49 +58,29 @@ class object_localiser:
         self.db = database()
         self.predictions = []
         self.obj_tab_col_names, _ = self.db.query_table('detected_objects', rows=0)
-        self.cameraInfo = rs.pyrealsense2.intrinsics()
-        file = open( ROOT_DIR+"/cameraInfo.p", "rb" )
-        self.cameraInfo = pickle.load(file)
-        file.close()
-        print(self.cameraInfo)
 
-    def cam2rob_transform(self, pose):
+    def cam2rob_transform(self, pose, frame):
         print(pose)
         p_in_base = None
-        print(self.tf_listener_.getFrameStrings())
-        if self.tf_listener_.frameExists('base_link') and self.tf_listener_.frameExists('camera_frame'):
-            t = self.tf_listener_.getLatestCommonTime("/base_link", "/camera_frame")
-            # p1 = PoseStamped()
-            # p1.header.frame_id = "fingertip"
-            # p1.pose.orientation.w = 1.0    # Neutral orientation
-            p_in_base = self.tf_listener_.transformPose("/base_link", pose)
+        # print(self.tf_listener_.getFrameStrings())
+        # tf_listener_.waitForTransform("/base", frame, rospy.Time(), rospy.Duration(4.0))
+        # print(tf_listener_.lookupTransform("/base", frame, rospy.Time()))
+        if self.tf_listener_.frameExists('/base') and self.tf_listener_.frameExists(frame):
+            _ = self.tf_listener_.getLatestCommonTime("/base", frame)
+            p_in_base = self.tf_listener_.transformPose("/base", pose)
 
         print(p_in_base)
         return p_in_base
 
-    def create_pose(self, x, y, angle, dist):
-
-        # _intrinsics = rs.intrinsics()
-        # _intrinsics.width = self.cameraInfo["width"]
-        # _intrinsics.height = self.cameraInfo["height"]
-        # _intrinsics.ppx = self.cameraInfo["ppx"]
-        # _intrinsics.ppy = self.cameraInfo["ppy"]
-        # _intrinsics.fx = self.cameraInfo["fx"]
-        # _intrinsics.fy = self.cameraInfo["fy"]
-        # _intrinsics.coeffs = self.cameraInfo["coeffs"]
-        # ###_intrinsics.model = cameraInfo.distortion_model
-        # #_intrinsics.model  = rs.distortion.none
-        # #_intrinsics.coeffs = [i for i in cameraInfo.D]
-        # result = rs.rs2_deproject_pixel_to_point(_intrinsics, [x, y], dist)
-
+    def create_pose(self, x, y, z, angle):
         p = PoseStamped()
         p.header.frame_id = "/camera_frame"
 
-        p.pose.position.x = x#0.02#result[0]#result[2]
-        p.pose.position.y = y#0#result[1]#-result[0]
-        p.pose.position.z = dist#0#result[2]#-result[1]
+        p.pose.position.x = x
+        p.pose.position.y = y
+        p.pose.position.z = z
         # Make sure the quaternion is valid and normalized
-        angle = radians(angle+45)
+        #angle = radians(angle+45)
         p.pose.orientation.x = sin(angle/2) * 1
         p.pose.orientation.y = sin(angle/2) * 0
         p.pose.orientation.z = sin(angle/2) * 0
@@ -110,26 +88,23 @@ class object_localiser:
 
         return p
 
-    def run_localisation(self):
+    def run_pipeline(self):
         self.read_database()
 
         self.detections = self.detections.reset_index()  # make sure indexes pair with number of rows
         print(f"Detections: {self.detections['obj_name']}")
         for index, row in self.detections.iterrows():
-            x = row['center_x']
-            y = row['center_y']
-            angle = row['rotation']
-            dist = row['distance']
-            print(x, y, row['obj_name'])
-            if (x != 0) and (y != 0):
-                obj_cam_pose = self.create_pose(x, y, angle, dist)
-                #obj_rob_pose = self.cam2rob_transform(obj_cam_pose)
+            print(row['center_x'], row['center_y'], row['distance'], row['rotation'], row['obj_name'])
+            if (row['center_x'] != 0) and (row['center_y'] != 0):
+                obj_cam_pose = self.create_pose(row['center_x'], row['center_y'], row['distance'], row['rotation']) # Pose in camera frame
+                if row['obj_name'] == "new_view":
+                    frame = "/wrist_3_link"
+                else:
+                    frame = "/camera_frame"
+                obj_rob_pose = self.cam2rob_transform(obj_cam_pose, frame)  # Pose in base frame (here or in cpp file)
                 
-                if obj_cam_pose is not None:
-                    obj_id = row['obj_id']
-                    obj_name = row['obj_name']
-                    self.obj_pub.publish(obj_cam_pose, obj_id, obj_name)
-                    time.sleep(0.2)
+                if obj_rob_pose is not None:
+                    self.obj_pub.publish(obj_rob_pose, row['obj_id'], row['obj_name'])
     
     def read_database(self):
         col_names, data = self.db.query_table('detected_objects', 'all')
@@ -138,19 +113,19 @@ class object_localiser:
 
 if __name__ == '__main__':               
     try:
-        localiser = object_localiser()
+        obj_transformer = object_transformer()
 
-        rate = rospy.Rate(0.5)
+        rate = rospy.Rate(0.5) # 0.5 Hz
         while (not rospy.is_shutdown()):
             try:
-                localiser.run_localisation()
+                obj_transformer.run_pipeline()
             except Exception as e:
                 print(e)
             rate.sleep()
     
     except rospy.ROSInterruptException:
-        print("realsense_run ROS exception")
+        print("object_ros_publisher ROS exception")
     
     except Exception as e:
-        print("**Image Error**")
+        print("**object_ros_publisher Error**")
         traceback.print_exc(file=sys.stdout)

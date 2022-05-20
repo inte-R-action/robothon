@@ -46,127 +46,136 @@ bool robotMove = false;
 
 namespace rvt = rviz_visual_tools;
 int robot_execute_code;
-double ft_readings [6];
+double ft_readings[6];
 
-void ftSensorCallback(const robotiq_ft_sensor::ft_sensor& msg)
+void ftSensorCallback(const robotiq_ft_sensor::ft_sensor &msg)
 {
-    double data [] = {msg.Fx,msg.Fy,msg.Fz,msg.Mx,msg.My,msg.Mz};
+    double data[] = {msg.Fx, msg.Fy, msg.Fz, msg.Mx, msg.My, msg.Mz};
     std::copy(data, data + 6, ft_readings);
 }
 
-void robotMoveCallback(const std_msgs::String::ConstPtr& msg)
+void robotMoveCallback(const std_msgs::String::ConstPtr &msg)
 {
-//  ROS_INFO("I heard: [%s]", msg->data);
- 
- 	//objectString.clear();
+    //  ROS_INFO("I heard: [%s]", msg->data);
 
-    objectString = msg->data; 
+    //objectString.clear();
 
-    //cout << "Robot move: " << robotMove << endl; 
+    objectString = msg->data;
+
+    //cout << "Robot move: " << robotMove << endl;
     //cout << "Object: " << objectString << endl;
 }
 
-void robotExecuteCallback(const moveit_msgs::ExecuteTrajectoryActionResult::ConstPtr& msg)
+void robotExecuteCallback(const moveit_msgs::ExecuteTrajectoryActionResult::ConstPtr &msg)
 {
     robot_execute_code = msg->result.error_code.val;
 }
 
-void objectDetectionCallback(const test_ik_planning::object_state::ConstPtr& msg)
+void objectDetectionCallback(const test_ik_planning::object_state::ConstPtr &msg)
 {
-    if ( objectString != "" ){
-        try { 
+    if (objectString != "")
+    {
+        try
+        {
             std::string obj2find = objectString.substr(5);
-            if (msg->Obj_type == "new_view"){
+            if (msg->Obj_type == "new_view")
+            {
                 object_state_msg.Id = msg->Id;
                 object_state_msg.Obj_type = msg->Obj_type;
                 object_state_msg.Pose = msg->Pose;
                 object_state_msg.Header = msg->Header;
             }
-            else if ( msg->Obj_type == objectString.substr(5) ){
+            else if (msg->Obj_type == objectString.substr(5))
+            {
                 object_state_msg.Id = msg->Id;
                 object_state_msg.Obj_type = msg->Obj_type;
                 object_state_msg.Pose = msg->Pose;
                 object_state_msg.Header = msg->Header;
             }
         }
-        catch (...) { 
+        catch (...)
+        {
             cout << "Error 2 with: " << objectString << endl;
         }
-
     }
 }
 
 // Map high level position to joint angles as seen on teach pendant
 // Order is: shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint
-struct jnt_angs{double angles[6];};
-std::map<std::string, jnt_angs> create_joint_pos(){
+struct jnt_angs
+{
+    double angles[6];
+};
+std::map<std::string, jnt_angs> create_joint_pos()
+{
     std::map<std::string, jnt_angs> joint_positions;
-    joint_positions["home"] = {-35.1, -107.4, 55.87, -40.0, -90.0, 325.96};//{-11.75, -83.80, 47.90, -125.0, -90.0, 0.0};
+    joint_positions["home"] = {-35.1, -107.4, 55.87, -40.0, -90.0, 325.96}; //{-11.75, -83.80, 47.90, -125.0, -90.0, 0.0};
     joint_positions["look_for_objects"] = {-35.1, -107.4, 55.87, -40.0, -90.0, 325.96};
     return joint_positions;
 };
 
-class moveit_robot {
-    public:
-        // Setup
-        // MoveIt! operates on sets of joints called "planning groups" and stores them in an object called
-        // the `JointModelGroup`. Throughout MoveIt! the terms "planning group" and "joint model group"
-        // are used interchangably.
-        const std::string PLANNING_GROUP;
+class moveit_robot
+{
+public:
+    // Setup
+    // MoveIt! operates on sets of joints called "planning groups" and stores them in an object called
+    // the `JointModelGroup`. Throughout MoveIt! the terms "planning group" and "joint model group"
+    // are used interchangably.
+    const std::string PLANNING_GROUP;
 
-        // The :move_group_interface:`MoveGroup` class can be easily
-        // setup using just the name of the planning group you would like to control and plan for.
-        moveit::planning_interface::MoveGroupInterface move_group;
+    // The :move_group_interface:`MoveGroup` class can be easily
+    // setup using just the name of the planning group you would like to control and plan for.
+    moveit::planning_interface::MoveGroupInterface move_group;
 
-        // We will use the :planning_interface:`PlanningSceneInterface`
-        // class to add and remove collision objects in our "virtual world" scene
-        moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+    // We will use the :planning_interface:`PlanningSceneInterface`
+    // class to add and remove collision objects in our "virtual world" scene
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
 
-        const robot_state::JointModelGroup* joint_model_group;
+    const robot_state::JointModelGroup *joint_model_group;
 
-        // Now, we call the planner to compute the plan and visualize it.
-        // The plan variable contains the movements that the robot will perform to move
-        // from one point to another
-        moveit::planning_interface::MoveGroupInterface::Plan plan;
+    // Now, we call the planner to compute the plan and visualize it.
+    // The plan variable contains the movements that the robot will perform to move
+    // from one point to another
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
 
-        moveit::core::RobotStatePtr current_state;
-        std::vector<double> joint_group_positions;
+    moveit::core::RobotStatePtr current_state;
+    std::vector<double> joint_group_positions;
 
-        // Visualization
-        // The package MoveItVisualTools provides many capabilties for visualizing objects, robots,
-        // and trajectories in RViz as well as debugging tools such as step-by-step introspection of a script
-        moveit_visual_tools::MoveItVisualTools visual_tools;
-        Eigen::Isometry3d text_pose;
+    // Visualization
+    // The package MoveItVisualTools provides many capabilties for visualizing objects, robots,
+    // and trajectories in RViz as well as debugging tools such as step-by-step introspection of a script
+    moveit_visual_tools::MoveItVisualTools visual_tools;
+    Eigen::Isometry3d text_pose;
 
-        // Joint positions map
-        std::map<std::string, jnt_angs> joint_positions;
+    // Joint positions map
+    std::map<std::string, jnt_angs> joint_positions;
 
-        ros::Subscriber robot_execute_sub;
+    ros::Subscriber robot_execute_sub;
 
-        std_msgs::String  robot_status_msg;
-        ros::Publisher robot_status_pub;
-        ros::Publisher target_pose_pub;
-        geometry_msgs::PoseStamped pose2plan2;
+    std_msgs::String robot_status_msg;
+    ros::Publisher robot_status_pub;
+    ros::Publisher target_pose_pub;
+    geometry_msgs::PoseStamped pose2plan2;
 
-        // Force sensor
-        ros::ServiceClient ft_client;
-        ros::Subscriber ft_sub1;
-        robotiq_ft_sensor::sensor_accessor ft_srv;
+    // Force sensor
+    ros::ServiceClient ft_client;
+    ros::Subscriber ft_sub1;
+    robotiq_ft_sensor::sensor_accessor ft_srv;
 
-        moveit_robot(ros::NodeHandle* node_handle);
-        void move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name);
-        void z_move(double dist, double max_velocity_scale_factor);
-        bool plan_to_pose(geometry_msgs::Pose pose);
-        void move_cartesian(double dist1, double dist2, double dist3);
-        void basic_cartesian_move(double dist1, double dist2, double dist3);
-        geometry_msgs::Pose transform_pose(geometry_msgs::Pose input_pose, string frame);
-    
-    private:
-        ros::NodeHandle nh_; // we will need this, to pass between "main" and constructor
+    moveit_robot(ros::NodeHandle *node_handle);
+    void move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name);
+    void z_move(double dist, double max_velocity_scale_factor);
+    bool plan_to_pose(geometry_msgs::Pose pose);
+    void move_cartesian(double dist1, double dist2, double dist3);
+    void basic_cartesian_move(double dist1, double dist2, double dist3);
+    geometry_msgs::Pose transform_pose(geometry_msgs::Pose input_pose, string frame);
 
+private:
+    ros::NodeHandle nh_; // we will need this, to pass between "main" and constructor
 };
 
-moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PLANNING_GROUP("manipulator"), visual_tools("world"), move_group(moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP)) {
+moveit_robot::moveit_robot(ros::NodeHandle *node_handle) : nh_(*node_handle), PLANNING_GROUP("manipulator"), visual_tools("world"), move_group(moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP))
+{
 
     // Raw pointers are frequently used to refer to the planning group for improved performance.
     joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
@@ -179,7 +188,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
 
     // RViz provides many types of markers, in this demo we will use text, cylinders, and spheres
     //Eigen::Affine3d text_pose = Eigen::Affine3d::Identity();
-    //Eigen::Isometry3d 
+    //Eigen::Isometry3d
     text_pose = Eigen::Isometry3d::Identity();
     text_pose.translation().z() = 1.75;
     visual_tools.publishText(text_pose, "HRI Static Demo - v 0.1.0", rvt::WHITE, rvt::XLARGE);
@@ -188,7 +197,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     visual_tools.trigger();
 
     // Getting Basic Information
-    // 
+    //
     // We can print the name of the reference frame for this robot.
     ROS_INFO_NAMED("UR3 robot", "Reference frame: %s", move_group.getPlanningFrame().c_str());
 
@@ -198,8 +207,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     // We can get a list of all the groups in the robot:
     ROS_INFO_NAMED("tutorial", "Available Planning Groups:");
     std::copy(move_group.getJointModelGroupNames().begin(), move_group.getJointModelGroupNames().end(),
-            std::ostream_iterator<std::string>(std::cout, ", "));
-
+              std::ostream_iterator<std::string>(std::cout, ", "));
 
     // Now, we call the planner to compute the plan and visualize it.
     // The plan variable contains the movements that the robot will perform to move
@@ -227,12 +235,12 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     target_pose_pub = nh_.advertise<geometry_msgs::PoseStamped>("TargetPose", 10);
     pose2plan2.header.seq = 0;
     pose2plan2.header.stamp = ros::Time::now();
-    pose2plan2.header.frame_id= "plan2pose";
+    pose2plan2.header.frame_id = "plan2pose";
 
     robot_execute_sub = nh_.subscribe("execute_trajectory/result", 1, robotExecuteCallback);
 
     ft_client = nh_.serviceClient<robotiq_ft_sensor::sensor_accessor>("robotiq_ft_sensor_acc");
-    ft_sub1 = nh_.subscribe("robotiq_ft_sensor",100,ftSensorCallback);
+    ft_sub1 = nh_.subscribe("robotiq_ft_sensor", 100, ftSensorCallback);
 
     // Add collision objects
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -271,7 +279,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
 
     geometry_msgs::Pose gripper_pose;
     gripper_pose.orientation.w = 0.0;
-    gripper_pose.position.x = gripper_primitive.dimensions[0]/2;
+    gripper_pose.position.x = gripper_primitive.dimensions[0] / 2;
     gripper_pose.position.y = 0.0;
     gripper_pose.position.z = 0.0;
 
@@ -280,7 +288,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     gripper_object.object.operation = gripper_object.object.ADD;
 
     //gripper_object.touch_links = std::vector<std::string>{ "ee_link"};
-    
+
     //planning_scene.world.collision_objects.push_back(gripper_object.object);
     planning_scene.is_diff = true;
     //planning_scene_diff_publisher.publish(planning_scene);
@@ -297,7 +305,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     //planning_scene.world.collision_objects.push_back(remove_gripper);
     planning_scene.robot_state.attached_collision_objects.push_back(gripper_object);
     //planning_scene_diff_publisher.publish(planning_scene);
-    
+
     // Add camera object to robot
     moveit_msgs::AttachedCollisionObject camera_object;
     camera_object.link_name = "ee_link";
@@ -314,14 +322,14 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     camera_pose.orientation.w = 0.0;
     camera_pose.position.x = 0.07;
     camera_pose.position.y = 0.0;
-    camera_pose.position.z = (camera_primitive.dimensions[2]+gripper_primitive.dimensions[2])/2;
+    camera_pose.position.z = (camera_primitive.dimensions[2] + gripper_primitive.dimensions[2]) / 2;
 
     camera_object.object.primitives.push_back(camera_primitive);
     camera_object.object.primitive_poses.push_back(camera_pose);
     camera_object.object.operation = camera_object.object.ADD;
 
     //camera_object.touch_links = std::vector<std::string>{ "ee_link", "gripper"};
-    
+
     //planning_scene.world.collision_objects.push_back(camera_object.object);
     planning_scene.is_diff = true;
     //planning_scene_diff_publisher.publish(planning_scene);
@@ -374,7 +382,8 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     visual_tools.trigger();
 }
 
-void moveit_robot::basic_cartesian_move(double dist1, double dist2, double dist3){
+void moveit_robot::basic_cartesian_move(double dist1, double dist2, double dist3)
+{
     move_group.setStartState(*move_group.getCurrentState());
     std::vector<geometry_msgs::Pose> waypoints3;
     geometry_msgs::Pose targetPosition = move_group.getCurrentPose().pose;
@@ -393,13 +402,14 @@ void moveit_robot::basic_cartesian_move(double dist1, double dist2, double dist3
     move_group.execute(trajectory3);
 }
 
-void moveit_robot::move_cartesian(double dist1, double dist2, double dist3){
+void moveit_robot::move_cartesian(double dist1, double dist2, double dist3)
+{
 
     robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
     robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
 
     ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
-   
+
     robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
     kinematic_state->setToDefaultValues();
 
@@ -412,13 +422,13 @@ void moveit_robot::move_cartesian(double dist1, double dist2, double dist3){
     std::vector<geometry_msgs::Pose> waypoints;
     // Stores the first target pose or waypoint
     geometry_msgs::Pose target_pose3 = target_home;
-   
-    target_pose3.position.x = target_pose3.position.x + dist1;    
+
+    target_pose3.position.x = target_pose3.position.x + dist1;
     target_pose3.position.y = target_pose3.position.y + dist2;
     target_pose3.position.z = target_pose3.position.z + dist3;
 
     waypoints.push_back(target_pose3);
-    int num_waypoints = plan.trajectory_.joint_trajectory.points.size();  
+    int num_waypoints = plan.trajectory_.joint_trajectory.points.size();
     cout << "Number of way points :" << num_waypoints << endl;
 
     moveit_msgs::RobotTrajectory trajectory;
@@ -437,14 +447,14 @@ void moveit_robot::move_cartesian(double dist1, double dist2, double dist3){
 
     plan.trajectory_ = trajectory;
 
-    const std::vector<std::string> joint_names = plan.trajectory_.joint_trajectory.joint_names;    //gets the names of the joints being updated in the trajectory
+    const std::vector<std::string> joint_names = plan.trajectory_.joint_trajectory.joint_names; //gets the names of the joints being updated in the trajectory
 
     kinematic_state->setVariablePositions(joint_names, plan.trajectory_.joint_trajectory.points.at(0).positions);
-   // geometry_msgs::end_effector = Pose;
+    // geometry_msgs::end_effector = Pose;
     const std::string end_effector = move_group.getEndEffectorLink().c_str();
 
     cout << "End-effector:" << end_effector << endl;
-   
+
     Eigen::Affine3d current_end_effector_state = kinematic_state->getGlobalLinkTransform(end_effector);
     Eigen::Affine3d next_end_effector_state;
 
@@ -453,101 +463,99 @@ void moveit_robot::move_cartesian(double dist1, double dist2, double dist3){
     double euclidean_distance, new_timestamp, old_timestamp, q1, q2, q3, dt1, dt2, v1, v2, a;
     trajectory_msgs::JointTrajectoryPoint *prev_waypoint, *curr_waypoint, *next_waypoint;
 
-     
-
-    for(int i = 0; i < num_waypoints - 1; i++)      //loop through all waypoints
+    for (int i = 0; i < num_waypoints - 1; i++) //loop through all waypoints
     {
         curr_waypoint = &plan.trajectory_.joint_trajectory.points.at(i);
-        next_waypoint = &plan.trajectory_.joint_trajectory.points.at(i+1);
-         
+        next_waypoint = &plan.trajectory_.joint_trajectory.points.at(i + 1);
+
         //set joints for next waypoint
         kinematic_state->setVariablePositions(joint_names, next_waypoint->positions);
- 
+
         //do forward kinematics to get cartesian positions of end effector for next waypoint
         next_end_effector_state = kinematic_state->getGlobalLinkTransform(end_effector);
- 
+
         //get euclidean distance between the two waypoints
         euclidean_distance = pow(pow(next_end_effector_state.translation()[0] - current_end_effector_state.translation()[0], 2) +
-                            pow(next_end_effector_state.translation()[1] - current_end_effector_state.translation()[1], 2) +
-                            pow(next_end_effector_state.translation()[2] - current_end_effector_state.translation()[2], 2), 0.5);
- 
-        new_timestamp = curr_waypoint->time_from_start.toSec() + (euclidean_distance / 0.05);      //start by printing out all 3 of these!
+                                     pow(next_end_effector_state.translation()[1] - current_end_effector_state.translation()[1], 2) +
+                                     pow(next_end_effector_state.translation()[2] - current_end_effector_state.translation()[2], 2),
+                                 0.5);
+
+        new_timestamp = curr_waypoint->time_from_start.toSec() + (euclidean_distance / 0.05); //start by printing out all 3 of these!
         old_timestamp = next_waypoint->time_from_start.toSec();
 
         //update next waypoint timestamp & joint velocities/accelerations if joint velocity/acceleration constraints allow
-        if(new_timestamp > old_timestamp)
+        if (new_timestamp > old_timestamp)
             next_waypoint->time_from_start.fromSec(new_timestamp);
         else
         {
             //ROS_WARN_NAMED("setAvgCartesianSpeed", "Average speed is too fast. Moving as fast as joint constraints allow.");
         }
-         
+
         //update current_end_effector_state for next iteration
         current_end_effector_state = next_end_effector_state;
     }
-     
+
     //now that timestamps are updated, update joint velocities/accelerations (used updateTrajectory from iterative_time_parameterization as a reference)
-    for(int i = 0; i < num_waypoints; i++)
+    for (int i = 0; i < num_waypoints; i++)
     {
-        curr_waypoint = &plan.trajectory_.joint_trajectory.points.at(i);            //set current, previous & next waypoints
-        if(i > 0)
-            prev_waypoint = &plan.trajectory_.joint_trajectory.points.at(i-1);
-        if(i < num_waypoints-1)
-            next_waypoint = &plan.trajectory_.joint_trajectory.points.at(i+1);
- 
-        if(i == 0)          //update dt's based on waypoint (do this outside of loop to save time)
+        curr_waypoint = &plan.trajectory_.joint_trajectory.points.at(i); //set current, previous & next waypoints
+        if (i > 0)
+            prev_waypoint = &plan.trajectory_.joint_trajectory.points.at(i - 1);
+        if (i < num_waypoints - 1)
+            next_waypoint = &plan.trajectory_.joint_trajectory.points.at(i + 1);
+
+        if (i == 0) //update dt's based on waypoint (do this outside of loop to save time)
             dt1 = dt2 = next_waypoint->time_from_start.toSec() - curr_waypoint->time_from_start.toSec();
-        else if(i < num_waypoints-1)
+        else if (i < num_waypoints - 1)
         {
             dt1 = curr_waypoint->time_from_start.toSec() - prev_waypoint->time_from_start.toSec();
             dt2 = next_waypoint->time_from_start.toSec() - curr_waypoint->time_from_start.toSec();
         }
         else
             dt1 = dt2 = curr_waypoint->time_from_start.toSec() - prev_waypoint->time_from_start.toSec();
- 
-        for(int j = 0; j < joint_names.size(); j++)     //loop through all joints in waypoint
+
+        for (int j = 0; j < joint_names.size(); j++) //loop through all joints in waypoint
         {
-            if(i == 0)                      //first point
+            if (i == 0) //first point
             {
                 q1 = next_waypoint->positions.at(j);
                 q2 = curr_waypoint->positions.at(j);
                 q3 = q1;
             }
-            else if(i < num_waypoints-1)    //middle points
+            else if (i < num_waypoints - 1) //middle points
             {
                 q1 = prev_waypoint->positions.at(j);
                 q2 = curr_waypoint->positions.at(j);
                 q3 = next_waypoint->positions.at(j);
             }
-            else                            //last point
+            else //last point
             {
                 q1 = prev_waypoint->positions.at(j);
                 q2 = curr_waypoint->positions.at(j);
                 q3 = q1;
             }
- 
-            if(dt1 == 0.0 || dt2 == 0.0)
+
+            if (dt1 == 0.0 || dt2 == 0.0)
                 v1 = v2 = a = 0.0;
             else
             {
-                v1 = (q2 - q1)/dt1;
-                v2 = (q3 - q2)/dt2;
-                a = 2.0*(v2 - v1)/(dt1+dt2);
+                v1 = (q2 - q1) / dt1;
+                v2 = (q3 - q2) / dt2;
+                a = 2.0 * (v2 - v1) / (dt1 + dt2);
             }
- 
-            //actually set the velocity and acceleration
-            curr_waypoint->velocities.at(j) = (v1+v2)/2;
-            curr_waypoint->accelerations.at(j) = a;
-            cout << "curr_waypoint_velocities:" << (v1+v2)/2 << endl; // print velocity valuesc
 
+            //actually set the velocity and acceleration
+            curr_waypoint->velocities.at(j) = (v1 + v2) / 2;
+            curr_waypoint->accelerations.at(j) = a;
+            cout << "curr_waypoint_velocities:" << (v1 + v2) / 2 << endl; // print velocity valuesc
         }
     }
-       
-     move_group.asyncExecute(plan);
-       
+
+    move_group.asyncExecute(plan);
 }
 
-bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose){
+bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose)
+{
     bool success = false;
 
     geometry_msgs::Pose current_pose = move_group.getCurrentPose().pose;
@@ -556,14 +564,15 @@ bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose){
     pose.orientation = current_pose.orientation;
     cout << "Target pose: " << pose << endl;
 
+    // To visualise in rviz
     pose2plan2.pose = pose;
     pose2plan2.header.seq++;
     pose2plan2.header.stamp = ros::Time::now();
     target_pose_pub.publish(pose2plan2);
 
-    double dist1 = pose.position.x - current_pose.position.x;
-    double dist2 = pose.position.y - current_pose.position.y;
-    double dist3 = 0;//current_pose.position.z - pose.position.z;
+    //double dist1 = pose.position.x - current_pose.position.x;
+    //double dist2 = pose.position.y - current_pose.position.y;
+    //double dist3 = 0; //current_pose.position.z - pose.position.z;
     //basic_cartesian_move(dist1, dist2, dist3);
     //success = true;
 
@@ -581,60 +590,66 @@ bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose){
     visual_tools.publishText(text_pose, "Pose Goal", rvt::WHITE, rvt::XLARGE);
     visual_tools.publishTrajectoryLine(plan.trajectory_, joint_model_group);
     visual_tools.trigger();
-    if (success){
+    if (success)
+    {
         visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
         move_group.move();
     }
     return success;
 }
 
-geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose, string frame){
-  tf2_ros::Buffer tfBuffer;
-  tf2_ros::TransformListener tfListener(tfBuffer);
-  geometry_msgs::Pose output_pose1;
-  geometry_msgs::Pose output_pose2;
-  geometry_msgs::TransformStamped transform1;
-  geometry_msgs::TransformStamped transform2;
+geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose, string frame)
+{
+    tf2_ros::Buffer tfBuffer;
+    tf2_ros::TransformListener tfListener(tfBuffer);
+    geometry_msgs::Pose output_pose;
+    geometry_msgs::TransformStamped transform;
 
-  while (ros::ok()){
-    try{
-      transform1 = tfBuffer.lookupTransform("world", frame,
-                                 ros::Time(0));
-    
-      ROS_INFO("%s", transform1.child_frame_id.c_str());
-      ROS_INFO("%f", transform1.transform.translation.x);
-      ROS_INFO("%f", transform1.transform.translation.y);
-      ROS_INFO("%f", transform1.transform.translation.z);
-      ROS_INFO("%f", transform1.transform.rotation.x);
-      ROS_INFO("%f", transform1.transform.rotation.y);
-      ROS_INFO("%f", transform1.transform.rotation.z);
-      ROS_INFO("%f", transform1.transform.rotation.w);
+    while (ros::ok())
+    {
+        try
+        {
+            transform = tfBuffer.lookupTransform("world", frame,
+                                                  ros::Time(0));
 
-      tf2::doTransform(input_pose, output_pose1, transform1);
+            ROS_INFO("%s", transform.child_frame_id.c_str());
+            ROS_INFO("%f", transform.transform.translation.x);
+            ROS_INFO("%f", transform.transform.translation.y);
+            ROS_INFO("%f", transform.transform.translation.z);
+            ROS_INFO("%f", transform.transform.rotation.x);
+            ROS_INFO("%f", transform.transform.rotation.y);
+            ROS_INFO("%f", transform.transform.rotation.z);
+            ROS_INFO("%f", transform.transform.rotation.w);
 
-      ROS_INFO_STREAM("Input pose: \n" << input_pose);
-      ROS_INFO_STREAM("Output pose1: \n" << output_pose1);
+            tf2::doTransform(input_pose, output_pose, transform);
 
-      return output_pose1;
+            ROS_INFO_STREAM("Input pose: \n"
+                            << input_pose);
+            ROS_INFO_STREAM("Output pose1: \n"
+                            << output_pose);
+
+            return output_pose;
+        }
+        catch (tf2::TransformException &ex)
+        {
+            ROS_ERROR("%s", ex.what());
+            ros::Duration(1).sleep();
+        }
     }
-    catch (tf2::TransformException &ex) {
-      ROS_ERROR("%s",ex.what());
-      ros::Duration(1).sleep();
-    }
-  }
 }
 
-void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name){
-    
-    if( joint_positions.count(jnt_pos_name) )
+void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name)
+{
+
+    if (joint_positions.count(jnt_pos_name))
     {
         targetJoints.clear();
-        targetJoints["shoulder_pan_joint"] = joint_positions[jnt_pos_name].angles[0]*3.1416/180;	// (deg*PI/180)
-        targetJoints["shoulder_lift_joint"] = joint_positions[jnt_pos_name].angles[1]*3.1416/180;
-        targetJoints["elbow_joint"] = joint_positions[jnt_pos_name].angles[2]*3.1416/180;
-        targetJoints["wrist_1_joint"] = joint_positions[jnt_pos_name].angles[3]*3.1416/180;
-        targetJoints["wrist_2_joint"] = joint_positions[jnt_pos_name].angles[4]*3.1416/180;
-        targetJoints["wrist_3_joint"] = joint_positions[jnt_pos_name].angles[5]*3.1416/180;
+        targetJoints["shoulder_pan_joint"] = joint_positions[jnt_pos_name].angles[0] * 3.1416 / 180; // (deg*PI/180)
+        targetJoints["shoulder_lift_joint"] = joint_positions[jnt_pos_name].angles[1] * 3.1416 / 180;
+        targetJoints["elbow_joint"] = joint_positions[jnt_pos_name].angles[2] * 3.1416 / 180;
+        targetJoints["wrist_1_joint"] = joint_positions[jnt_pos_name].angles[3] * 3.1416 / 180;
+        targetJoints["wrist_2_joint"] = joint_positions[jnt_pos_name].angles[4] * 3.1416 / 180;
+        targetJoints["wrist_3_joint"] = joint_positions[jnt_pos_name].angles[5] * 3.1416 / 180;
 
         robot_status_msg.data = robot_action;
         robot_status_pub.publish(robot_status_msg);
@@ -644,17 +659,18 @@ void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::s
         move_group.setJointValueTarget(targetJoints);
 
         bool success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-        ROS_INFO("Visualizing new move position plan (%.2f%% acheived)",success * 100.0);
+        ROS_INFO("Visualizing new move position plan (%.2f%% acheived)", success * 100.0);
 
         move_group.execute(plan);
     }
-    else{
+    else
+    {
         cout << "Unrecognised joint_position key: " << jnt_pos_name << endl;
     }
-
 }
 
-void moveit_robot::z_move(double dist, double max_velocity_scale_factor){
+void moveit_robot::z_move(double dist, double max_velocity_scale_factor)
+{
 
     //--Cartesian movement planning for straight down movement--//
     // dist is -ve down, +ve up in m
@@ -690,7 +706,7 @@ void moveit_robot::z_move(double dist, double max_velocity_scale_factor){
     visual_tools.publishText(text_pose, "Cartesian Path", rvt::WHITE, rvt::XLARGE);
     visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
     for (std::size_t i = 0; i < waypoints.size(); ++i)
-    visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
+        visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
     visual_tools.trigger();
 
     // Cartesian motions should often be slow, e.g. when approaching objects. The speed of cartesian
@@ -704,7 +720,7 @@ void moveit_robot::z_move(double dist, double max_velocity_scale_factor){
 
     // Second get a RobotTrajectory from trajectory
     rt.setRobotTrajectoryMsg(*move_group.getCurrentState(), trajectory);
-     
+
     // Thrid create a IterativeParabolicTimeParameterization object
     trajectory_processing::IterativeParabolicTimeParameterization iptp;
     // Fourth compute computeTimeStamps
@@ -716,25 +732,27 @@ void moveit_robot::z_move(double dist, double max_velocity_scale_factor){
     //     max_velocity_scale_factor = 1;
     // }
     bool success = iptp.computeTimeStamps(rt, max_velocity_scale_factor);
-    ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
+    ROS_INFO("Computed time stamp %s", success ? "SUCCEDED" : "FAILED");
     // Get RobotTrajectory_msg from RobotTrajectory
     rt.getRobotTrajectoryMsg(trajectory);
     // Check trajectory_msg for velocities not empty
     //std::cout << trajectory << std::endl;
 
     plan.trajectory_ = trajectory;
-    ROS_INFO("Visualizing plan 4 (cartesian path) (%.2f%% acheived)",fraction * 100.0);   
+    ROS_INFO("Visualizing plan 4 (cartesian path) (%.2f%% acheived)", fraction * 100.0);
     //move_group.execute(plan);
 
     // You can execute a trajectory like this.
     robot_execute_code = 0;
     ft_srv.request.command_id = ft_srv.request.COMMAND_SET_ZERO;
-    if(ft_client.call(ft_srv)){
+    if (ft_client.call(ft_srv))
+    {
         ROS_INFO("ret: %s", ft_srv.response.res.c_str());
         ROS_INFO("I heard: FX[%f] FY[%f] FZ[%f] MX[%f] MY[%f] MZ[%f]", ft_readings[0], ft_readings[1], ft_readings[2], ft_readings[3], ft_readings[4], ft_readings[5]);
     }
     std::cout << "Z move dist: " << dist << endl;
-    if (dist < 0){
+    if (dist < 0)
+    {
         move_group.asyncExecute(plan);
         double last = 0.0;
         while ((ft_readings[2] > -3) && (robot_execute_code != 1) && ros::ok())
@@ -746,19 +764,20 @@ void moveit_robot::z_move(double dist, double max_velocity_scale_factor){
         }
         move_group.stop();
         string execute_result = "unknown";
-        if (robot_execute_code == 1){
+        if (robot_execute_code == 1)
+        {
             execute_result = "Complete";
         }
-        else if (robot_execute_code == 0){
+        else if (robot_execute_code == 0)
+        {
             execute_result = "Force Stop";
         }
         std::cout << ">> Robot code: " << robot_execute_code << " (" << execute_result << ")  Force: " << ft_readings[2] << "  Max: " << last << endl;
-
     }
-    else{
+    else
+    {
         move_group.execute(plan);
     }
-
 }
 
 void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
@@ -767,56 +786,61 @@ void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 }
 
-
 geometry_msgs::Pose look_for_objects(string bring_cmd, moveit_robot &Robot)
 {
-    // wait for message received?
     geometry_msgs::Pose object_pose;
     std::string obj2find;
-    try { 
+    try
+    {
         obj2find = bring_cmd.substr(5);
     }
-    catch (...) { 
-cout << "Error 1 with: " << bring_cmd << endl;
-obj2find = "Error";
-}
-    
+    catch (...)
+    {
+        cout << "Error 1 with: " << bring_cmd << endl;
+        obj2find = "Error";
+    }
+
     cout << "Looking for: " << obj2find << endl;
-    while(ros::ok()){
+    while (ros::ok())
+    {
         cout << "Looking for: " << obj2find << " detected: " << object_state_msg.Obj_type << endl;
-        if (obj2find == object_state_msg.Obj_type){
-           object_pose = object_state_msg.Pose;
-           return object_pose;
+        if (obj2find == object_state_msg.Obj_type)
+        {
+            object_pose = object_state_msg.Pose;
+            return object_pose;
         }
-        else if ( object_state_msg.Obj_type == "new_view"){
-           object_pose = object_state_msg.Pose;
+        else if (object_state_msg.Obj_type == "new_view")
+        {
+            object_pose = object_state_msg.Pose;
             cout << "Found: " << object_pose << endl;
-            // Transform to world frame
-            geometry_msgs::Pose pose_base_obj = Robot.transform_pose(object_pose, "ee_link");
+            // Transform to world frame >> This is done in Python now
+            // geometry_msgs::Pose pose_base_obj = Robot.transform_pose(object_pose, "wrist_3_link");
             // Move to new position above object
-            geometry_msgs::Pose target_pose1;
-            target_pose1.orientation.x = pose_base_obj.orientation.x;
-            target_pose1.orientation.y = pose_base_obj.orientation.y;
-            target_pose1.orientation.z = pose_base_obj.orientation.z;
-            target_pose1.orientation.w = pose_base_obj.orientation.w;
-            target_pose1.position.x = pose_base_obj.position.x;
-            target_pose1.position.y = pose_base_obj.position.y;
-            target_pose1.position.z = 0.4;
-            ROS_INFO_STREAM("Target pose: \n" << target_pose1);
-            bool success;
-            success = Robot.plan_to_pose(target_pose1);
-        } 
-        else{
+            geometry_msgs::Pose target_pose = object_pose;
+            // target_pose1.orientation.x = pose_base_obj.orientation.x;
+            // target_pose1.orientation.y = pose_base_obj.orientation.y;
+            // target_pose1.orientation.z = pose_base_obj.orientation.z;
+            // target_pose1.orientation.w = pose_base_obj.orientation.w;
+            // target_pose1.position.x = pose_base_obj.position.x;
+            // target_pose1.position.y = pose_base_obj.position.y;
+            // target_pose1.position.z = 0.4;
+            // ROS_INFO_STREAM("Target pose: \n" << target_pose1);
+            bool success = Robot.plan_to_pose(object_pose);
+            if (success)
+            {
+                cout << "New pose IK success" << endl;
+            }
+            else
+            {
+                cout << "Failed to perform new pose IK plan" << endl;
+            }
+            ros::Duration(3).sleep(); // Wait to get good image
+        }
+        else
+        {
             ros::Duration(1).sleep();
         }
     }
-    // wait for message received?
-    //geometry_msgs::Pose object_pose;
-    //object_pose.orientation.w = 1.0;
-    //object_pose.position.x = 0.05;
-    //object_pose.position.y = 0.1;
-    //object_pose.position.z = -0.1;
-    //return object_pose;
 }
 
 bool find_object(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
@@ -825,56 +849,38 @@ bool find_object(string bring_cmd, std::map<std::string, double> &targetJoints, 
     Robot.move_robot(targetJoints, bring_cmd, "look_for_objects");
     ros::Duration(3).sleep(); //Wait to get good image
     bool success = false;
-    while (not success and ros::ok()){
+    while (not success and ros::ok())
+    {
         // Look for object
         geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd, Robot);
         cout << "Found: " << pose_cam_obj << endl;
-        // Transform to world frame
-        geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj, "camera_frame");
+        // Transform to world frame >> done in Python now
+        //geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj, "camera_frame");
         // Move to new position above object
-        geometry_msgs::Pose target_pose1;
-        target_pose1.orientation.x = pose_base_obj.orientation.x;
-        target_pose1.orientation.y = pose_base_obj.orientation.y;
-        target_pose1.orientation.z = pose_base_obj.orientation.z;
-        target_pose1.orientation.w = pose_base_obj.orientation.w;
-        target_pose1.position.x = pose_base_obj.position.x;
-        target_pose1.position.y = pose_base_obj.position.y;
-        target_pose1.position.z = 0.4;
-        ROS_INFO_STREAM("Target pose: \n" << target_pose1);
-        success = Robot.plan_to_pose(target_pose1);
+        geometry_msgs::Pose target_pose = pose_cam_obj;
+        //target_pose.orientation.x = pose_base_obj.orientation.x;
+        //target_pose.orientation.y = pose_base_obj.orientation.y;
+        //target_pose.orientation.z = pose_base_obj.orientation.z;
+        //target_pose.orientation.w = pose_base_obj.orientation.w;
+        //target_pose.position.x = pose_base_obj.position.x;
+        //target_pose.position.y = pose_base_obj.position.y;
+        // target_pose.position.z = 0.4;
+        // ROS_INFO_STREAM("Target pose: \n"
+        //                 << target_pose);
+        success = Robot.plan_to_pose(target_pose);
     }
-
-    if (success){
+    if (success)
+    {
         cout << "IK success" << endl;
-        //Robot.move_group.execute();
-        //Robot.move_group.move();
-
-        // Move down, pick block up, move up
-        //pick_up_object(Robot, 0.11);
-
-        // Move to stack position
-        //Robot.move_robot(targetJoints, bring_cmd, string("final_stack"));
-
-        // Move down, set down block, move up
-        //double block_heght = 0.019;
-        //double z_move = 0.11 - (stack_height*block_heght);
-        //Robot.z_move(-(z_move-block_heght), 0.05);
-        //Robot.z_move(-block_heght, 0.01);
-        //Robot.open_gripper();
-        //Robot.z_move(z_move, 1.0);
     }
-    else {
+    else
+    {
         cout << "Failed to perform IK plan" << endl;
     }
-    
-    
     return success;
-  // Return to home position
-    //home(targetJoints, Robot);
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     // Set up ROS stuff
     string frame_id = "test_ik_planning";
@@ -886,7 +892,7 @@ int main(int argc, char** argv)
     ros::Time diag_timeout = ros::Time::now();
 
     // High level move commands subscriber
-	ros::Subscriber subRobotPosition = node_handle.subscribe("RobotMove", 10, robotMoveCallback);
+    ros::Subscriber subRobotPosition = node_handle.subscribe("RobotMove", 10, robotMoveCallback);
 
     // Object recognition subscriber
     ros::Subscriber subObjectRecog = node_handle.subscribe("ObjectStates", 10, objectDetectionCallback);
@@ -906,7 +912,7 @@ int main(int argc, char** argv)
 
     string last_obj_string = "";
 
-    while( ros::ok() )
+    while (ros::ok())
     {
         targetJoints.clear();
 
@@ -916,15 +922,15 @@ int main(int argc, char** argv)
             cout << "Robot Objective: " << objectString << endl;
             last_obj_string = objectString;
 
-            if ( objectString != "")
+            if (objectString != "")
             {
                 Robot.robot_status_msg.data = objectString;
                 Robot.robot_status_pub.publish(Robot.robot_status_msg);
-                if( objectString.rfind("find_", 0) == 0 )
-                { 
+                if (objectString.rfind("find_", 0) == 0)
+                {
                     bool success = find_object(objectString, targetJoints, Robot);
                 }
-                else if( objectString == "home" )
+                else if (objectString == "home")
                 {
                     //Robot.robot_status_msg.data = "home";
                     //Robot.robot_status_pub.publish(Robot.robot_status_msg);
@@ -933,7 +939,7 @@ int main(int argc, char** argv)
                 Robot.robot_status_msg.data = "Done";
                 Robot.robot_status_pub.publish(Robot.robot_status_msg);
             }
-            
+
             // wait position
             Robot.robot_status_msg.data = "Waiting";
             Robot.robot_status_pub.publish(Robot.robot_status_msg);

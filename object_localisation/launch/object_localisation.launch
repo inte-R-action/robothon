@@ -10,8 +10,12 @@
 
   <node name="object_ros_publisher" pkg="object_localisation" type="object_ros_publisher.py" respawn="false" output="screen">
   </node>
+  
+  <!-- 
+  <node name="test_location" pkg="object_localisation" type="test_camera_params.py" respawn="false" output="screen">
+  </node>
+  -->
 
-  <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="0.065 0.037 0.082 0 0 0 1 ee_link camera_frame 100" />
-
+ <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="-0.028 -0.086 0.1035 0.9606 -0.0071 -0.1131 -02536 wrist_3_link camera_frame 100" />
 
 </launch>

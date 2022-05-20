@@ -26,12 +26,6 @@ tables = [['detected_objects', ["identification SERIAL PRIMARY KEY",
                                 "center_y FLOAT",
                                 "distance FLOAT"]]]
 
-def sys_stat_callback(data):
-    """callback for system status messages"""
-    if data.Header.frame_id == 'gui_node':
-        if data.DiagnosticStatus.message == 'SHUTDOWN':
-            rospy.signal_shutdown('gui shutdown')
-
 
 def make_tables(db, del_tab=True):
     try:
@@ -57,26 +51,6 @@ def make_tables(db, del_tab=True):
     except Exception as e:
         print(f"Make Tables Error: {e}")
         raise
-
-
-# def load_tables(db):
-#     base_dir = os.getcwd()+'/sam_nodes/scripts/postgresql/'
-#     for name in tables_to_make:
-#         try:
-#             db.csv_import(f"{base_dir}{name}.csv", tab_name=name)
-#             if name in ('assemble_box', 'assemble_chair', 'stack_tower', 'assemble_complex_box', 'assemble_complex_box_manual'):
-#                 # Update times and action ids from actions table
-#                 sql = f"UPDATE {name} SET action_id = actions.action_id, default_time = actions.std_dur_s FROM actions WHERE actions.action_name = {name}.action_name"
-#                 db.gen_cmd(sql)
-
-#             print(f"Loaded data into '{name}'")
-
-#         except FileNotFoundError:
-#             print(f"WARNING: Load table file not found for '{name}' at {base_dir}{name}.csv")
-#         except Exception as e:
-#             print(f"Load Table Error: {e}")
-#             raise
-#     print("Load Tables Completed")
 
 
 def save_tables(db, tables_to_save='all', file_path=None, verbose=True):
@@ -108,14 +82,13 @@ def database_run(db):
     frame_id = 'Database_node'
     rospy.init_node(frame_id, anonymous=True)
 
-    rate = rospy.Rate(1) # 1hz
+    rate = rospy.Rate(0.1) # 0.1hz
     try:
         # Test connection
         db.connect(verbose=True)
         db.disconnect(verbose=True)
-        # Make and load predefined tables
+        # Make predefined tables
         make_tables(db)
-        # load_tables(db)
     except Exception as e:
         print(f"Database node create database error: {e}")
         raise
