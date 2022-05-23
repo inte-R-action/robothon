@@ -146,6 +146,7 @@ int main(int argc, char** argv)
 
     geometry_msgs::Pose homePositionPose;
     bool setHomePositionReady = false;
+    bool setTaskPositionReady = false;
     std::vector<geometry_msgs::Pose> waypoints;
 
     moveit_msgs::RobotTrajectory trajectory;
@@ -164,6 +165,9 @@ int main(int argc, char** argv)
 
         if( robot_action_mode.action == "moveToHomePosition" )    // define the home position needed to enable the rest of actions
         {
+
+            setTaskPositionReady = false;
+
             current_state = move_group.getCurrentState();
             current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
 
@@ -217,6 +221,7 @@ int main(int argc, char** argv)
 			robot_action_mode.robotJoints[3] = 0.0;
 			robot_action_mode.robotJoints[4] = 0.0;
 			robot_action_mode.robotJoints[5] = 0.0;
+
 /*			robot_action_mode.shoulder_pan_value = 0.0;
 			robot_action_mode.shoulder_lift_value = 0.0;
 			robot_action_mode.elbow_value = 0.0;
@@ -229,7 +234,7 @@ int main(int argc, char** argv)
         }
         else if( robot_action_mode.action == "moveDown" )    // move the robot down
         {
-            if( setHomePositionReady == true )
+            if( ( setHomePositionReady == true )  && ( setTaskPositionReady == true ) )
             {
                 // prepare z steps for sensor exploration
                 float incrementZaxis = 0.078;
@@ -418,7 +423,7 @@ int main(int argc, char** argv)
         }
         else if( robot_action_mode.action == "moveToCartesian" )    // move the robot to specific x, y, z position
         {
-            if( setHomePositionReady == true )
+            if( ( setHomePositionReady == true )  && ( setTaskPositionReady == true ) )
             {
                 // prepare z steps for sensor exploration
 				float incrementXaxis = 0.0;
@@ -643,6 +648,88 @@ int main(int argc, char** argv)
         }
         else if( robot_action_mode.action == "moveToJoints" )    // move robot to specific joint configuration
         {
+            if( ( setHomePositionReady == true )  && ( setTaskPositionReady == true ) )
+            {
+				move_group.setStartState(*move_group.getCurrentState());
+
+                set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity
+                clientSpeedSlider.call(set_speed_frac);   
+                sleep(0.1);
+
+				// start moving robot to home position
+				std::map<std::string, double> jointPositions;
+				bool success = false;
+
+                current_state = move_group.getCurrentState();
+                current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+                for( int i = 0; i < 6; i++ )
+                    cout << "Current Joint value [" << i << "] = " << ( joint_group_positions[i] * 180 / 3.1416 )<< ", Next Joint value increment [" << i << "] = " << robot_action_mode.robotJoints[i] << endl;
+
+				jointPositions["shoulder_pan_joint"] = joint_group_positions[0] + (robot_action_mode.robotJoints[0] * 3.1416 / 180);	// (deg*PI/180)
+				jointPositions["shoulder_lift_joint"] = joint_group_positions[1] + (robot_action_mode.robotJoints[1] * 3.1416 / 180);
+				jointPositions["elbow_joint"] = joint_group_positions[2] + (robot_action_mode.robotJoints[2] * 3.1416 / 180);
+				jointPositions["wrist_1_joint"] = joint_group_positions[3] + (robot_action_mode.robotJoints[3] * 3.1416 / 180);
+				jointPositions["wrist_2_joint"] = joint_group_positions[4] + (robot_action_mode.robotJoints[4] * 3.1416 / 180);
+				jointPositions["wrist_3_joint"] = joint_group_positions[5] + (robot_action_mode.robotJoints[5] * 3.1416 / 180);
+
+				move_group.setJointValueTarget(jointPositions);
+
+				success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+				ROS_INFO("Visualizing PRE-START position plan (%.2f%% acheived)",success * 100.0);
+
+				move_group.execute(plan);
+
+				move_group.setStartState(*move_group.getCurrentState());
+//				homePositionPose = move_group.getCurrentPose().pose;
+
+                current_state = move_group.getCurrentState();
+                current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+                for( int i = 0; i < 6; i++ )
+                    cout << "Updated joint value [" << i << "] = " << ( joint_group_positions[i] * 180 / 3.1416 ) << endl; 
+
+				msgRobotActionStatus.data = true;
+                robotActionStatusPub.publish(msgRobotActionStatus);
+
+                robot_action_mode.action = "empty";
+                robot_action_mode.position = 0;
+                robot_action_mode.speed = 0;
+                robot_action_mode.forceDetection = 0;
+                robot_action_mode.incrementXaxis = 0;
+                robot_action_mode.incrementYaxis = 0;
+                robot_action_mode.incrementZaxis = 0;
+			    robot_action_mode.robotJoints[0] = 0.0;
+			    robot_action_mode.robotJoints[1] = 0.0;
+			    robot_action_mode.robotJoints[2] = 0.0;
+			    robot_action_mode.robotJoints[3] = 0.0;
+			    robot_action_mode.robotJoints[4] = 0.0;
+			    robot_action_mode.robotJoints[5] = 0.0;
+			}
+            else
+            {
+				msgRobotActionStatus.data = false;
+                cout << "Home position has not been set" << endl;
+            }
+			
+
+            robot_action_mode.action = "empty";
+            robot_action_mode.position = 0;
+            robot_action_mode.speed = 0;
+            robot_action_mode.forceDetection = 0;
+            robot_action_mode.incrementXaxis = 0;
+            robot_action_mode.incrementYaxis = 0;
+            robot_action_mode.incrementZaxis = 0;
+			robot_action_mode.robotJoints[0] = 0.0;
+			robot_action_mode.robotJoints[1] = 0.0;
+			robot_action_mode.robotJoints[2] = 0.0;
+			robot_action_mode.robotJoints[3] = 0.0;
+			robot_action_mode.robotJoints[4] = 0.0;
+			robot_action_mode.robotJoints[5] = 0.0;
+			
+//            sleep(2);
+            sleep(0.1);
+        }
+        else if( robot_action_mode.action == "taskHomePosition" )    // move robot to specific joint configuration
+        {
             if( setHomePositionReady == true )
             {
 				move_group.setStartState(*move_group.getCurrentState());
@@ -660,29 +747,11 @@ int main(int argc, char** argv)
                 for( int i = 0; i < 6; i++ )
                     cout << "Current Joint value [" << i << "] = " << ( joint_group_positions[i] * 180 / 3.1416 )<< ", Next Joint value increment [" << i << "] = " << robot_action_mode.robotJoints[i] << endl;
 
-
-/*
-				// move robot to home position
-				double shoulder_pan_value = robot_action_mode.shoulder_pan_value;
-				double shoulder_lift_value = robot_action_mode.shoulder_lift_value;
-				double elbow_value = robot_action_mode.elbow_value;
-				double wrist_1_value = robot_action_mode.wrist_1_value;
-				double wrist_2_value = robot_action_mode.wrist_2_value;
-				double wrist_3_value = robot_action_mode.wrist_3_value;
-				bool success = false;
-
-				jointPositions["shoulder_pan_joint"] = shoulder_pan_value * 3.1416 / 180;	// (deg*PI/180)
-				jointPositions["shoulder_lift_joint"] = shoulder_lift_value * 3.1416 / 180;
-				jointPositions["elbow_joint"] = elbow_value * 3.1416 / 180;
-				jointPositions["wrist_1_joint"] = wrist_1_value * 3.1416 / 180;
-				jointPositions["wrist_2_joint"] = wrist_2_value * 3.1416 / 180;
-				jointPositions["wrist_3_joint"] = wrist_3_value * 3.1416 / 180;
-*/
-				jointPositions["shoulder_pan_joint"] = joint_group_positions[0] + (robot_action_mode.robotJoints[0] * 3.1416 / 180);	// (deg*PI/180)
-				jointPositions["shoulder_lift_joint"] = joint_group_positions[1] + (robot_action_mode.robotJoints[1] * 3.1416 / 180);
-				jointPositions["elbow_joint"] = joint_group_positions[2] + (robot_action_mode.robotJoints[2] * 3.1416 / 180);
-				jointPositions["wrist_1_joint"] = joint_group_positions[3] + (robot_action_mode.robotJoints[3] * 3.1416 / 180);
-				jointPositions["wrist_2_joint"] = joint_group_positions[4] + (robot_action_mode.robotJoints[4] * 3.1416 / 180);
+				jointPositions["shoulder_pan_joint"] = joint_group_positions[0] + (0 * 3.1416 / 180);	// (deg*PI/180)
+				jointPositions["shoulder_lift_joint"] = joint_group_positions[1] + (0 * 3.1416 / 180);
+				jointPositions["elbow_joint"] = joint_group_positions[2] + (0 * 3.1416 / 180);
+				jointPositions["wrist_1_joint"] = joint_group_positions[3] + (0 * 3.1416 / 180);
+				jointPositions["wrist_2_joint"] = joint_group_positions[4] + (0 * 3.1416 / 180);
 				jointPositions["wrist_3_joint"] = joint_group_positions[5] + (robot_action_mode.robotJoints[5] * 3.1416 / 180);
 
 				move_group.setJointValueTarget(jointPositions);
@@ -694,6 +763,11 @@ int main(int argc, char** argv)
 
 				move_group.setStartState(*move_group.getCurrentState());
 //				homePositionPose = move_group.getCurrentPose().pose;
+
+                if( ( success * 100.0 ) == 100.0 )
+                    setTaskPositionReady = true;
+                else
+                    setTaskPositionReady = false;            
 
                 current_state = move_group.getCurrentState();
                 current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);

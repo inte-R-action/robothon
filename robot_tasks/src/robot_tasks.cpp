@@ -52,18 +52,7 @@ using namespace std;
 bool gripperActionsReady = false;
 bool robotActionsReady = false;
 
-
-/*
-// callback function to control the gripper action
-void robotControlParametersCallback(const robot_tasks::robotControlParameters::ConstPtr& msg)
-{
-    robot_action_mode.action = msg->action;
-    robot_action_mode.position = msg->position;
-    robot_action_mode.speed = msg->speed;
-    robot_action_mode.forceDetection = msg->forceDetection;
-    robot_action_mode.incrementZaxis = msg->incrementZaxis;
-}
-*/
+float boxAngle = 0.0;
 
 // callback function from gripper actions status
 void gripperActionsStatusCallback(const std_msgs::Bool::ConstPtr& msg)
@@ -71,11 +60,18 @@ void gripperActionsStatusCallback(const std_msgs::Bool::ConstPtr& msg)
 	gripperActionsReady = msg->data;
 }
 
-// callback function from gripper actions status
+// callback function from robot actions status
 void robotActionsStatusCallback(const std_msgs::Bool::ConstPtr& msg)
 {
 	robotActionsReady = msg->data;
 }
+
+// callback function from box modules
+void boxStatusCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+	boxAngle = msg->data;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -95,6 +91,7 @@ int main(int argc, char** argv)
 
     ros::Subscriber gripper_actions_status_sub = node_handle.subscribe("gripper_actions_status", 1, gripperActionsStatusCallback);
     ros::Subscriber robot_actions_status_sub = node_handle.subscribe("robot_actions_status", 1, robotActionsStatusCallback);
+    ros::Subscriber box_status_sub = node_handle.subscribe("box_status", 1, boxStatusCallback);
 
 
     // connection of publisher and subscriber with the Robotiq controller from ROS Industrial
@@ -221,6 +218,7 @@ int main(int argc, char** argv)
 
         cout << "**********************************" << endl;
         cout << "select task" << endl;
+        cout << "0 - align end-effector to box" << endl;
         cout << "1 - blue button" << endl;
         cout << "2 - AA batteries " << endl;
         cout << "3 - coin battery" << endl;
@@ -232,10 +230,10 @@ int main(int argc, char** argv)
         cin >> taskNumber;
 
 
-        if( taskNumber == 1 )
+        if( taskNumber == 0 )
         {
         /****************************************************/
-        // Begining of task 1: box localisation and press blue button
+        // Begin of task 0: set robot end-effector orientation to box orientation
 
 		// send robot to home position
 		cout << "robot action: moveToHomePosition" << endl;
@@ -249,9 +247,66 @@ int main(int argc, char** argv)
 		robotActionsReady = false;
         
         geometry_msgs::Pose homePosition = move_group.getCurrentPose().pose;
-//         geometry_msgs::Pose blueButton = move_group.getCurrentPose().pose;
-        float blueButtonX = 0.22321;
-        float blueButtonY = 0.09197;
+
+        cout << "Angle box received = " << boxAngle << endl;
+        int a = 0;
+        cout << "press a key to continue" << endl;
+        cin >> a;
+
+		cout << "robot action: taskHomePosition" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "taskHomePosition";
+		robot_actions_msg.robotJoints[5] = boxAngle;    // end-effector angle
+		robot_actions_pub.publish(robot_actions_msg);
+		while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+
+        // End of task 0: set robot end-effector orientation to box orientation
+        /****************************************************/
+        }
+        if( taskNumber == 1 )
+        {
+        /****************************************************/
+        // Begining of task 1: box localisation and press blue button
+
+		// send robot to home position
+        geometry_msgs::Pose homePosition = move_group.getCurrentPose().pose;
+
+		cout << "robot action: moveToHomePosition" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "moveToHomePosition";
+		robot_actions_pub.publish(robot_actions_msg);
+    	while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+        
+        homePosition = move_group.getCurrentPose().pose;
+
+        cout << "Angle box received = " << boxAngle << endl;
+        int a = 0;
+        cout << "press a key to continue" << endl;
+        cin >> a;
+
+		cout << "robot action: taskHomePosition" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "taskHomePosition";
+		robot_actions_msg.robotJoints[5] = boxAngle;    // end-effector angle
+		robot_actions_pub.publish(robot_actions_msg);
+		while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+
+        homePosition = move_group.getCurrentPose().pose;
+
+        float blueButtonX = 0.23359;
+        float blueButtonY = 0.08075;
    
         // move robot in x and y position on the blue button
 		cout << "robot action: move to x and y positions" << endl;
@@ -271,6 +326,27 @@ int main(int argc, char** argv)
 		}	
 		robotActionsReady = false;
 
+/*        float blueButtonX = 0.22321;
+        float blueButtonY = 0.09197;
+   
+        // move robot in x and y position on the blue button
+		cout << "robot action: move to x and y positions" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "moveToCartesian";
+		robot_actions_msg.position = 0;
+		robot_actions_msg.speed = 0;
+		robot_actions_msg.force = 0;
+		robot_actions_msg.forceDetection = false;
+		robot_actions_msg.incrementXaxis = blueButtonX - homePosition.position.x;
+		robot_actions_msg.incrementYaxis = blueButtonY - homePosition.position.y; 
+		robot_actions_msg.incrementZaxis = 0.0;
+		robot_actions_pub.publish(robot_actions_msg);
+		while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+*/
 
         // move robot down on z axis
 		cout << "robot action: move down on z axis" << endl;
@@ -312,6 +388,24 @@ int main(int argc, char** argv)
 		cout << "robot action: moveToHomePosition" << endl;
         sleep(0.5);
 		robot_actions_msg.action = "moveToHomePosition";
+		robot_actions_pub.publish(robot_actions_msg);
+		while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+
+        homePosition = move_group.getCurrentPose().pose;
+
+        cout << "Angle box received = " << boxAngle << endl;
+        a = 0;
+        cout << "press a key to continue" << endl;
+        cin >> a;
+
+		cout << "robot action: taskHomePosition" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "taskHomePosition";
+		robot_actions_msg.robotJoints[5] = boxAngle;    // end-effector angle
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
 		{
@@ -1869,7 +1963,7 @@ int main(int argc, char** argv)
 		    gripper_actions_msg.position = 170;
 		    gripper_actions_msg.speed = 50;
 		    gripper_actions_msg.force = 200;
-		    gripper_actions_msg.useContactDetection = false;
+		    gripper_actions_msg.useContactDetection = false;robotJoints
 		    gripper_actions_pub.publish(gripper_actions_msg);
 		    while( !gripperActionsReady )
 		    {
