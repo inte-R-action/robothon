@@ -67,29 +67,31 @@ float moveTransformY = 0.0;
 
 void funcTransformPosition(float boxAngleValue, float currentXPos, float currentYPos, float nextXPos, float nextYPos)
 {
-	MatrixXd translationMatrix(3,3);
-	MatrixXd rotationMatrix(3,3);
-	MatrixXd currentLocation(3,1);
-	MatrixXd newLocation(3,1);
+	MatrixXd translationMatrix(4,4);
+	MatrixXd rotationMatrix(4,4);
+	//MatrixXd currentLocation(3,1);
+	MatrixXd newLocation(4,1);
 
 	float boxAngleValueInRad = boxAngleValue * PI / 180.0;
 
-	translationMatrix << 1, 0, nextXPos,
-						 0, 1, nextYPos,
-						 0, 0, 1;
+	translationMatrix << 1, 0, 0, nextXPos,
+						 0, 1, 0,nextYPos,
+                         0, 0, 1, 0,   
+						 0, 0, 0, 1;
 
-	currentLocation << currentXPos, currentYPos, 1;
+	//currentLocation << currentXPos, currentYPos, 1;
 
-	currentLocation = translationMatrix * currentLocation;
+	//currentLocation = translationMatrix * currentLocation;
 
-	rotationMatrix << cos(boxAngleValueInRad), -sin(boxAngleValueInRad), 0,
-				      sin(boxAngleValueInRad),  cos(boxAngleValueInRad), 0,
-						 0, 0, 1;
+	rotationMatrix << cos(boxAngleValueInRad), -sin(boxAngleValueInRad), 0, currentXPos,
+				      sin(boxAngleValueInRad),  cos(boxAngleValueInRad), 0, currentYPos,
+						 0, 0, 1, 0, 
+                         0, 0, 0, 1;
+   
+	newLocation =  rotationMatrix * translationMatrix;
 
-	newLocation = rotationMatrix * currentLocation;
-
-	moveTransformX = newLocation(0);
-	moveTransformY = newLocation(1);
+	moveTransformX = newLocation(0,3);
+	moveTransformY = newLocation(1,3);
 }
 
 
@@ -354,10 +356,13 @@ int main(int argc, char** argv)
 		}	
 		robotActionsReady = false;
 
+       cout << "press a key to continue" << endl;
+        cin >> a;
+
         homePosition = move_group.getCurrentPose().pose;
 
-        float blueButtonX = 0.23359;
-        float blueButtonY = 0.08075;
+        float blueButtonX = 0.219; //0.320; 45 degree //180 degree //0.21058;// 90 degree //0.23359; 0 degree
+        float blueButtonY = 0.038;// -0.1098;//0.08075;
    
         // move robot in x and y position on the blue button
 		cout << "robot action: move to x and y positions" << endl;
@@ -369,6 +374,49 @@ int main(int argc, char** argv)
 		robot_actions_msg.forceDetection = false;
 		robot_actions_msg.incrementXaxis = blueButtonX - homePosition.position.x;
 		robot_actions_msg.incrementYaxis = blueButtonY - homePosition.position.y; 
+		robot_actions_msg.incrementZaxis = 0.0;
+		robot_actions_pub.publish(robot_actions_msg);
+		while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+
+       cout << "press a key to continue" << endl;
+        cin >> a;
+
+        float shiftX = 0.01038;
+        float shiftY = -0.005; //0.01122 
+
+        homePosition = move_group.getCurrentPose().pose;
+
+        cout << "original shift X = " << shiftX << endl;
+        cout << "original shift Y = " << shiftY << endl;
+
+        funcTransformPosition(boxAngle, homePosition.position.x, homePosition.position.y, shiftX, shiftY);
+
+        shiftX = moveTransformX;
+        shiftY = moveTransformY;
+
+  		cout << "Robot Position X =" << homePosition.position.x << endl;
+		cout << "Robot Position Y =" << homePosition.position.y << endl;      
+		cout << "transformed shift X =" << shiftX << endl;
+		cout << "transformed shift Y =" << shiftY << endl;
+
+       cout << "press a key to continue" << endl;
+        cin >> a;
+
+
+        // move robot in x and y position on the blue button
+		cout << "robot action: shift on x and y" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "moveToCartesian";
+		robot_actions_msg.position = 0;
+		robot_actions_msg.speed = 0;
+		robot_actions_msg.force = 0;
+		robot_actions_msg.forceDetection = false;
+		robot_actions_msg.incrementXaxis = shiftX - homePosition.position.x;
+		robot_actions_msg.incrementYaxis = shiftY - homePosition.position.y; 
 		robot_actions_msg.incrementZaxis = 0.0;
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -482,10 +530,32 @@ int main(int argc, char** argv)
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
+    
+       cout << "press a key to continue" << endl;
+        int a = 0;        
+        cin >> a;
 
-        float batteryLidX = 0.25173;
-        float batteryLidY = -0.01245; // 0.01033 is added to move the robot on the lid
         geometry_msgs::Pose homePosition = move_group.getCurrentPose().pose;
+        cout << "robot action: taskHomePosition" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "taskHomePosition";
+		robot_actions_msg.robotJoints[5] = boxAngle;    // end-effector angle
+		robot_actions_pub.publish(robot_actions_msg);
+		while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+
+       cout << "press a key to continue" << endl;
+        a = 0;        
+        cin >> a;
+
+        homePosition = move_group.getCurrentPose().pose;
+
+        float batteryLidX = 0.2941;//0.25173; 0 degree
+        float batteryLidY = -0.04066;//-0.01245; // 0.01033 is added to move the robot on the lid
+        homePosition = move_group.getCurrentPose().pose;
 
        // move robot in x and y position on the lid
 		cout << "robot action: move to x and y positions on lid" << endl;
@@ -504,11 +574,17 @@ int main(int argc, char** argv)
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
+    
+        cin >> a;
 
         geometry_msgs::Pose centerLid = move_group.getCurrentPose().pose;
-        float batteryLidSlideX = centerLid.position.x;
-        float batteryLidSlideY = 0.01033; // 0.01033 is added to move the robot on the lid
-  
+        float batteryLidSlideX = 0; //centerLid.position.x;
+        float batteryLidSlideY = -0.01033; // 0.01033 is added to move the robot on the lid
+
+        funcTransformPosition(boxAngle, centerLid.position.x, centerLid.position.y, batteryLidSlideX, batteryLidSlideY);
+        
+        batteryLidSlideX = moveTransformX;
+        batteryLidSlideY = moveTransformY;
  // move robot in x and y position on the lid
 		cout << "robot action: move to x and y positions on lid" << endl;
         sleep(0.5);
@@ -529,8 +605,8 @@ int main(int argc, char** argv)
 
 
 
-//int b=0;
-//cin>>b;
+int b=0;
+cin>>b;
 
        // move robot down and touch the battery lid
 		cout << "robot action: move down, detect force" << endl;
@@ -567,6 +643,18 @@ int main(int argc, char** argv)
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
+        
+
+       cout << "press a key to continue" << endl;
+        a = 0;        
+        cin >> a;
+
+        float LidSlideX = 0.0;
+        float LidSlideY = 0.025;
+        geometry_msgs::Pose LidSlidePosition = move_group.getCurrentPose().pose;
+        funcTransformPosition(boxAngle, LidSlidePosition.position.x, LidSlidePosition.position.y, LidSlideX, LidSlideY);
+        LidSlideX = moveTransformX;
+        LidSlideY = moveTransformY;
 
        // move robot on y axis and slide the lid
 		cout << "robot action: slide on lid" << endl;
@@ -576,8 +664,8 @@ int main(int argc, char** argv)
 		robot_actions_msg.speed = 0;
 		robot_actions_msg.force = 0;
 		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = 0.0;
-		robot_actions_msg.incrementYaxis = -0.025;
+		robot_actions_msg.incrementXaxis = LidSlideX - LidSlidePosition.position.x;
+		robot_actions_msg.incrementYaxis = LidSlideY - LidSlidePosition.position.y;
 		robot_actions_msg.incrementZaxis = 0.0;
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )

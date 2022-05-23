@@ -179,7 +179,7 @@ int main(int argc, char** argv)
             double elbow_value = 45.46;
             double wrist_1_value = -49.61;
             double wrist_2_value = -90.08;
-            double wrist_3_value = 334.00;
+            double wrist_3_value = 0.0 - 26.0; //334.00;//334.00;
             bool success = false;
 
             homePosition["shoulder_pan_joint"] = shoulder_pan_value * 3.1416 / 180;	// (deg*PI/180)
@@ -732,7 +732,12 @@ int main(int argc, char** argv)
         {
             if( setHomePositionReady == true )
             {
-				move_group.setStartState(*move_group.getCurrentState());
+                current_state = move_group.getCurrentState();
+                current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+
+                move_group.setStartState(*move_group.getCurrentState());
+
+//				move_group.setStartState(*move_group.getCurrentState());
 
                 set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity
                 clientSpeedSlider.call(set_speed_frac);   
@@ -742,8 +747,8 @@ int main(int argc, char** argv)
 				std::map<std::string, double> jointPositions;
 				bool success = false;
 
-                current_state = move_group.getCurrentState();
-                current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+//                current_state = move_group.getCurrentState();
+//                current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
                 for( int i = 0; i < 6; i++ )
                     cout << "Current Joint value [" << i << "] = " << ( joint_group_positions[i] * 180 / 3.1416 )<< ", Next Joint value increment [" << i << "] = " << robot_action_mode.robotJoints[i] << endl;
 
