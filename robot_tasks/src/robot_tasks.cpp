@@ -46,13 +46,52 @@
 #include "robot_actions/robotControlParameters.h"
 #include "gripper_actions/gripperControlParameters.h"
 
+#include <Eigen/Dense>
+
+
+#define PI 3.14159265
+
 
 using namespace std;
+using namespace Eigen;
+
 
 bool gripperActionsReady = false;
 bool robotActionsReady = false;
 
 float boxAngle = 0.0;
+
+
+float moveTransformX = 0.0;
+float moveTransformY = 0.0;
+
+void funcTransformPosition(float boxAngleValue, float currentXPos, float currentYPos, float nextXPos, float nextYPos)
+{
+	MatrixXd translationMatrix(3,3);
+	MatrixXd rotationMatrix(3,3);
+	MatrixXd currentLocation(3,1);
+	MatrixXd newLocation(3,1);
+
+	float boxAngleValueInRad = boxAngleValue * PI / 180.0;
+
+	translationMatrix << 1, 0, nextXPos,
+						 0, 1, nextYPos,
+						 0, 0, 1;
+
+	currentLocation << currentXPos, currentYPos, 1;
+
+	currentLocation = translationMatrix * currentLocation;
+
+	rotationMatrix << cos(boxAngleValueInRad), -sin(boxAngleValueInRad), 0,
+				      sin(boxAngleValueInRad),  cos(boxAngleValueInRad), 0,
+						 0, 0, 1;
+
+	newLocation = rotationMatrix * currentLocation;
+
+	moveTransformX = newLocation(0);
+	moveTransformY = newLocation(1);
+}
+
 
 // callback function from gripper actions status
 void gripperActionsStatusCallback(const std_msgs::Bool::ConstPtr& msg)
@@ -256,6 +295,18 @@ int main(int argc, char** argv)
 		cout << "robot action: taskHomePosition" << endl;
         sleep(0.5);
 		robot_actions_msg.action = "taskHomePosition";
+	    robot_actions_msg.position = 0;
+	    robot_actions_msg.speed = 0;
+	    robot_actions_msg.force = 0;
+	    robot_actions_msg.forceDetection = false;
+	    robot_actions_msg.incrementXaxis = 0.0;
+	    robot_actions_msg.incrementYaxis = 0.0;
+	    robot_actions_msg.incrementZaxis = 0.0;
+	    robot_actions_msg.robotJoints[0] = 0.0;
+	    robot_actions_msg.robotJoints[1] = 0.0;
+	    robot_actions_msg.robotJoints[2] = 0.0;
+	    robot_actions_msg.robotJoints[3] = 0.0;
+	    robot_actions_msg.robotJoints[4] = 0.0;
 		robot_actions_msg.robotJoints[5] = boxAngle;    // end-effector angle
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -1963,7 +2014,7 @@ int main(int argc, char** argv)
 		    gripper_actions_msg.position = 170;
 		    gripper_actions_msg.speed = 50;
 		    gripper_actions_msg.force = 200;
-		    gripper_actions_msg.useContactDetection = false;robotJoints
+		    gripper_actions_msg.useContactDetection = false;
 		    gripper_actions_pub.publish(gripper_actions_msg);
 		    while( !gripperActionsReady )
 		    {
