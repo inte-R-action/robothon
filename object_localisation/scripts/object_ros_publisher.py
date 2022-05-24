@@ -62,12 +62,16 @@ class object_transformer:
     def cam2rob_transform(self, pose, frame):
         print(pose)
         p_in_base = None
-        # print(self.tf_listener_.getFrameStrings())
-        # tf_listener_.waitForTransform("/base", frame, rospy.Time(), rospy.Duration(4.0))
-        # print(tf_listener_.lookupTransform("/base", frame, rospy.Time()))
-        if self.tf_listener_.frameExists('/base') and self.tf_listener_.frameExists(frame):
-            _ = self.tf_listener_.getLatestCommonTime("/base", frame)
-            p_in_base = self.tf_listener_.transformPose("/base", pose)
+        print(self.tf_listener_.getFrameStrings())
+        self.tf_listener_.waitForTransform("/base", frame, rospy.Time(), rospy.Duration(4.0))
+        print(self.tf_listener_.lookupTransform("/base", frame, rospy.Time()))
+        #if self.tf_listener_.frameExists('/base') and self.tf_listener_.frameExists(frame):
+        _ = self.tf_listener_.getLatestCommonTime("/base", frame)
+        p_in_base = self.tf_listener_.transformPose("/base", pose)
+        
+        # Moveit inverse()
+        p_in_base.pose.position.x = -p_in_base.pose.position.x
+        p_in_base.pose.position.y = -p_in_base.pose.position.y
 
         print(p_in_base)
         return p_in_base

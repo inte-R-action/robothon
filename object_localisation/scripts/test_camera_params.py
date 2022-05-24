@@ -58,10 +58,13 @@ def cam2rob_transform(pose):
     print(tf_listener_.getFrameStrings())
     tf_listener_.waitForTransform("/base", "/camera_frame", rospy.Time(), rospy.Duration(4.0))
     print(tf_listener_.lookupTransform("/base", "/camera_frame", rospy.Time()))
-    if tf_listener_.frameExists('base') and tf_listener_.frameExists('camera_frame'):
-        _ = tf_listener_.getLatestCommonTime("/base", "/camera_frame")
-        p_in_base = tf_listener_.transformPose("/base", pose)
+    #if tf_listener_.frameExists('base') and tf_listener_.frameExists('camera_frame'):
+    _ = tf_listener_.getLatestCommonTime("/base", "/camera_frame")
+    p_in_base = tf_listener_.transformPose("/base", pose)
 
+    # Moveit inverse()
+    p_in_base.pose.position.x = -p_in_base.pose.position.x
+    p_in_base.pose.position.y = -p_in_base.pose.position.y
     print(p_in_base)
     return p_in_base
 
@@ -95,9 +98,12 @@ while 1:
     # Get frames from camera
     frames = cam.pipeline.wait_for_frames()
     color_image, depth_colormap, depth_image = cam.depth_frames(frames)
-
-    x1 = 100
-    y1 = 100
+  # up right 489-175
+  # down right 502-387
+  # down left 284-399
+  # up left 274-187
+    x1 = 502
+    y1 = 387
     x2 = 400
     y2 = 100
 
@@ -106,11 +112,12 @@ while 1:
     # depth2 = depth_image[y2, x2]
     # result2 = rs.rs2_deproject_pixel_to_point(cameraInfo, [x2, y2], depth2)
 
-    obj_cam_pose = create_pose(result1[0], result1[1], 0, result1[2]) # Pose in camera frame
-    obj_rob_pose = cam2rob_transform(obj_cam_pose)  # Pose in base frame (here or in cpp file)
-    
-    if obj_rob_pose is not None:
-        obj_pub.publish(obj_rob_pose, 0, 'test')
+    if result1[2] != 0:
+        obj_cam_pose = create_pose(result1[0], result1[1], 0, result1[2]) # Pose in camera frame
+        obj_rob_pose = cam2rob_transform(obj_cam_pose)  # Pose in base frame (here or in cpp file)
+        
+        if obj_rob_pose is not None:
+            obj_pub.publish(obj_rob_pose, 0, 'test')
 
     print(result1)
     # print("x: ", result1[0], result2[0], result2[0]-result1[0])

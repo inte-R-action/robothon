@@ -48,76 +48,104 @@ class object_localiser:
         return depth
 
     def run_localisation(self):
+        no_attempts = 4
 
-        # Get frames from camera
-        frames = self.cam.pipeline.wait_for_frames()
-        color_image, depth_colormap, depth_image = self.cam.depth_frames(frames)
-        color_image= cv2.cvtColor(color_image,  cv2.COLOR_RGB2BGR)
+        for att in range(no_attempts):
+            print(f"Attempt no: {att}")
+            # Get frames from camera
+            frames = self.cam.pipeline.wait_for_frames()
+            color_image, depth_colormap, depth_image = self.cam.depth_frames(frames)
+            color_image= cv2.cvtColor(color_image,  cv2.COLOR_RGB2BGR)
 
-        if self.display:
-            cv2.imshow("RS colour image", color_image)
-            key = cv2.waitKey(1)
-            # Press esc or 'q' to close the image window
-            if key & 0xFF == ord('q') or key == 27:
-                cv2.destroyAllWindows()
+            if self.display:
+                cv2.imshow("RS colour image", np.hstack((color_image, depth_colormap)))
+                key = cv2.waitKey(1)
+                # Press esc or 'q' to close the image window
+                if key & 0xFF == ord('q') or key == 27:
+                    cv2.destroyAllWindows()
 
-        # Classify image
-        detect_success, self.predictions, bounding_Boxes, new_view = self.classifier.detect_object(color_image)
+            # Classify image
+            detect_success, self.predictions, bounding_Boxes, new_view = self.classifier.detect_object(color_image)
 
-        ouput_predictions = []
-        if detect_success:
-            ID = self.predictions[0][0]
-            Names = self.predictions[1][0]
-            confident = self.predictions[2][0]
-            box_angle = self.predictions[3]
-            Cpoints = self.predictions[4][0]
-            depths = [float(depth_image[p[1], p[0]]) for i, p in enumerate(Cpoints)]
+            ouput_predictions = []
+            if detect_success:
+                ID = self.predictions[0]
+                Names = self.predictions[1]
+                confident = self.predictions[2]
+                box_angle = self.predictions[3]
+                Cpoints = self.predictions[4]
+                depths = [float(depth_image[p[1], p[0]]) for i, p in enumerate(Cpoints)]
 
-            if self.classifier.all_detected:
-                for p, id in enumerate(ID):
-                    # Wider depth search if invalid point
-                    if depths[p] == 0:
-                        depths[p] = self.depth_search(Cpoints[p][1], Cpoints[p][0], depth_image)
-                    # Convert pixels to spatial coords
-                    result = rs.rs2_deproject_pixel_to_point(self.cameraInfo, [Cpoints[p][0], Cpoints[p][1]], depths[p])
+                if self.classifier.all_detected:
+                    for p, id in enumerate(ID):
+                        # Wider depth search if invalid point
+                        if depths[p] == 0:
+                            depths[p] = self.depth_search(Cpoints[p][1], Cpoints[p][0], depth_image)
+                        # Convert pixels to spatial coords
+                        result = rs.rs2_deproject_pixel_to_point(self.cameraInfo, [Cpoints[p][0], Cpoints[p][1]], depths[p])
+
+                        x = result[0]
+                        y = result[1]
+                        z = result[2]
+
+                        # make sure data types are correct for database
+                        ouput_predictions.append([])
+                        ouput_predictions[-1].append(int(id))
+                        ouput_predictions[-1].append(str(Names[p]))
+                        ouput_predictions[-1].append(float(confident[p]))
+                        ouput_predictions[-1].append(float(box_angle))
+                        ouput_predictions[-1].append(float(x))
+                        ouput_predictions[-1].append(float(y))
+                        ouput_predictions[-1].append(float(z))
+
+                    self.classifier.visualize(color_image, bounding_Boxes, Cpoints, box_angle)
+
+                    print(self.predictions)
+                    if ouput_predictions:
+                        self.publish_to_database(ouput_predictions)
+                    self.classifier.erase_history()
+                    return
+
+                elif self.classifier.box_detected:
+                    depth = float(depth_image[new_view[1], new_view[0]])
+                    if depth == 0:
+                        depth = self.depth_search(new_view[1], new_view[0], depth_image)
+                    result = rs.rs2_deproject_pixel_to_point(self.cameraInfo, [new_view[0], new_view[1]], depth)
 
                     x = result[0]
                     y = result[1]
                     z = result[2]
+                    ouput_predictions = [[0, "new_view", 1.0, 0.0, x, y, z]]
 
-                    # make sure data types are correct for database
-                    ouput_predictions.append([])
-                    ouput_predictions[-1].append(int(id))
-                    ouput_predictions[-1].append(str(Names[p]))
-                    ouput_predictions[-1].append(float(confident[p]))
-                    ouput_predictions[-1].append(float(box_angle))
-                    ouput_predictions[-1].append(float(x))
-                    ouput_predictions[-1].append(float(y))
-                    ouput_predictions[-1].append(float(z))
+                    self.classifier.visualize(color_image, bounding_Boxes, Cpoints, box_angle)
 
-            elif self.classifier.box_detected:
-                depth = float(depth_image[new_view[1], new_view[0]])
-                if depth == 0:
-                    depth = self.depth_search(new_view[1], new_view[0], depth_image)
-                result = rs.rs2_deproject_pixel_to_point(self.cameraInfo, [new_view[0], new_view[1]], depth)
 
-                x = result[0]
-                y = result[1]
-                z = result[2]
-                ouput_predictions = [[0, "new_view", 1.0, 0.0, x, y, z]]
-
-            else:
-                print("This is a confusing place to be")
+                elif (self.classifier.box_detected is False) and (new_view):
+                    self.classifier.visualize(color_image, [], [], [])
+                    print('unusual detection better to go to new view: ', self.new_view)
+                    break
             
-            self.classifier.visualize(color_image, ID, Names, confident, bounding_Boxes, Cpoints, box_angle)
+            else:
+                print('Nothing detected, this sucks..')
+                self.classifier.visualize(color_image, [], [], [])
+                break
+        
+        if new_view:
+            depth = float(depth_image[new_view[1], new_view[0]])
+            if depth == 0:
+                depth = self.depth_search(new_view[1], new_view[0], depth_image)
+            result = rs.rs2_deproject_pixel_to_point(self.cameraInfo, [new_view[0], new_view[1]], depth)
+
+            x = result[0]
+            y = result[1]
+            z = result[2]
+            ouput_predictions = [[0, "new_view", 1.0, 0.0, x, y, z]]
+            if ouput_predictions:
+                self.publish_to_database(ouput_predictions)
+            self.classifier.erase_history()
         else:
-            print('Nothing detected, this sucks..')
-        
-            self.classifier.visualize(color_image, [], [], [], [], [],[])
-        
-        print(self.predictions)
-        if ouput_predictions:
-            self.publish_to_database(ouput_predictions)
+            self.classifier.erase_history()
+            print("No new view to go to")
 
     def publish_to_database(self, ouput_predictions):
         # Delete old rows for user
@@ -139,7 +167,11 @@ if __name__ == '__main__':
     try:
         localiser = object_localiser(args.disp)
         while (True):
-            localiser.run_localisation()
+            try:
+                localiser.run_localisation()
+            except Exception as e:
+                print("**Image Error**")
+                traceback.print_exc(file=sys.stdout)
             cv2.waitKey(1)
     except Exception as e:
         print("**Image Error**")
