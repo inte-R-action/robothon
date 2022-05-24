@@ -361,8 +361,8 @@ int main(int argc, char** argv)
 
         homePosition = move_group.getCurrentPose().pose;
 
-        float blueButtonX = 0.219; //0.320; 45 degree //180 degree //0.21058;// 90 degree //0.23359; 0 degree
-        float blueButtonY = 0.038;// -0.1098;//0.08075;
+        float blueButtonX = 0.17606; //45deg (-45 gripper) //0.34344; //-90deg (90 gripper) //0.19968; // 90deg (-90 gripper) //0.23359; // 0 deg (0 gripper) //0.219; 90 deg //0.320; 45 degree //180 degree //0.21058;// 90 degree //0.23359; 0 degree
+        float blueButtonY = 0.01354; //45deg (-45 gripper) //0.03180; //-90deg (90 gripper) //-0.05410; // 90deg (-90 gripper) //0.08075; // 0 deg (0 gripper) //0.038; 90 deg // -0.1098;//0.08075;
    
         // move robot in x and y position on the blue button
 		cout << "robot action: move to x and y positions" << endl;
@@ -385,15 +385,15 @@ int main(int argc, char** argv)
        cout << "press a key to continue" << endl;
         cin >> a;
 
-        float shiftX = 0.01038;
-        float shiftY = -0.005; //0.01122 
+        float shiftX = -0.01038;
+        float shiftY = 0.005; //0.01122 
 
         homePosition = move_group.getCurrentPose().pose;
 
         cout << "original shift X = " << shiftX << endl;
         cout << "original shift Y = " << shiftY << endl;
 
-        funcTransformPosition(boxAngle, homePosition.position.x, homePosition.position.y, shiftX, shiftY);
+        funcTransformPosition(-boxAngle, homePosition.position.x, homePosition.position.y, shiftX, shiftY);
 
         shiftX = moveTransformX;
         shiftY = moveTransformY;
@@ -553,8 +553,8 @@ int main(int argc, char** argv)
 
         homePosition = move_group.getCurrentPose().pose;
 
-        float batteryLidX = 0.2941;//0.25173; 0 degree
-        float batteryLidY = -0.04066;//-0.01245; // 0.01033 is added to move the robot on the lid
+        float batteryLidX = 0.25257; //45deg (-45 gripper) //0.25536; //-90deg (90 gripper) //0.29150; //90deg (-90 gripper) // 0.25142; //0deg (-0 gripper) // 0.2941; // 90 deg 
+        float batteryLidY = -0.03342; //45deg (-45 gripper) //0.01705; //-90deg (90 gripper) //-0.03883;//90deg (-90 gripper)// -0.00873; //0deg (-0 gripper)    //-0.04066; // 90 deg //-0.01245; // 0.01033 is added to move the robot on the lid
         homePosition = move_group.getCurrentPose().pose;
 
        // move robot in x and y position on the lid
@@ -579,9 +579,9 @@ int main(int argc, char** argv)
 
         geometry_msgs::Pose centerLid = move_group.getCurrentPose().pose;
         float batteryLidSlideX = 0; //centerLid.position.x;
-        float batteryLidSlideY = -0.01033; // 0.01033 is added to move the robot on the lid
+        float batteryLidSlideY = 0.01033; // 0.01033 is added to move the robot on the lid
 
-        funcTransformPosition(boxAngle, centerLid.position.x, centerLid.position.y, batteryLidSlideX, batteryLidSlideY);
+        funcTransformPosition(-boxAngle, centerLid.position.x, centerLid.position.y, batteryLidSlideX, batteryLidSlideY);
         
         batteryLidSlideX = moveTransformX;
         batteryLidSlideY = moveTransformY;
@@ -650,9 +650,9 @@ cin>>b;
         cin >> a;
 
         float LidSlideX = 0.0;
-        float LidSlideY = 0.025;
+        float LidSlideY = -0.025;
         geometry_msgs::Pose LidSlidePosition = move_group.getCurrentPose().pose;
-        funcTransformPosition(boxAngle, LidSlidePosition.position.x, LidSlidePosition.position.y, LidSlideX, LidSlideY);
+        funcTransformPosition(-boxAngle, LidSlidePosition.position.x, LidSlidePosition.position.y, LidSlideX, LidSlideY);
         LidSlideX = moveTransformX;
         LidSlideY = moveTransformY;
 
@@ -853,6 +853,9 @@ cin>>b;
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
+
+        cout << "Removing battery starts here, press a key" << endl;
+        cin >> a;
 
     int signBattery=1;
 
