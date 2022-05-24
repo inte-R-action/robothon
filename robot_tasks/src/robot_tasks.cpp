@@ -531,7 +531,7 @@ int main(int argc, char** argv)
 		}	
 		robotActionsReady = false;
     
-       cout << "press a key to continue" << endl;
+       cout << "press a key to continue-1" << endl;
         int a = 0;        
         cin >> a;
 
@@ -547,14 +547,14 @@ int main(int argc, char** argv)
 		}	
 		robotActionsReady = false;
 
-       cout << "press a key to continue" << endl;
+       cout << "press a key to continue-2" << endl;
         a = 0;        
         cin >> a;
 
         homePosition = move_group.getCurrentPose().pose;
 
-        float batteryLidX = 0.25257; //45deg (-45 gripper) //0.25536; //-90deg (90 gripper) //0.29150; //90deg (-90 gripper) // 0.25142; //0deg (-0 gripper) // 0.2941; // 90 deg 
-        float batteryLidY = -0.03342; //45deg (-45 gripper) //0.01705; //-90deg (90 gripper) //-0.03883;//90deg (-90 gripper)// -0.00873; //0deg (-0 gripper)    //-0.04066; // 90 deg //-0.01245; // 0.01033 is added to move the robot on the lid
+        float batteryLidX = 0.25142; //0deg (-0 gripper) //0.25257; //45deg (-45 gripper) //0.25536; //-90deg (90 gripper) //0.29150; //90deg (-90 gripper)// 0.2941; // 90 deg 
+        float batteryLidY = -0.00873; //0deg (-0 gripper) -0.03342; //45deg (-45 gripper) //0.01705; //-90deg (90 gripper) //-0.03883;//90deg (-90 gripper)//-0.04066; // 90 deg //-0.01245; // 0.01033 is added to move the robot on the lid
         homePosition = move_group.getCurrentPose().pose;
 
        // move robot in x and y position on the lid
@@ -574,7 +574,7 @@ int main(int argc, char** argv)
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
-    
+        cout << "press to continue-3" << endl;
         cin >> a;
 
         geometry_msgs::Pose centerLid = move_group.getCurrentPose().pose;
@@ -645,7 +645,7 @@ cin>>b;
 		robotActionsReady = false;
         
 
-       cout << "press a key to continue" << endl;
+       cout << "press a key to continue-4" << endl;
         a = 0;        
         cin >> a;
 
@@ -784,6 +784,7 @@ cin>>b;
 		}	
 		robotActionsReady = false;
 
+
        // move robot in x and y position to leave the lid on the table
 		cout << "robot action: move to release (lid) position" << endl;
         sleep(0.5);
@@ -792,8 +793,8 @@ cin>>b;
 		robot_actions_msg.speed = 0;
 		robot_actions_msg.force = 0;
 		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = -0.100;
-		robot_actions_msg.incrementYaxis = -0.060;
+		robot_actions_msg.incrementXaxis = -0.100; // -0.100
+		robot_actions_msg.incrementYaxis = -0.085; //-0.060
 		robot_actions_msg.incrementZaxis = 0.0;
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -871,7 +872,35 @@ cin>>b;
 		}	
 		robotActionsReady = false;
 
+        cout << "home position reached" << endl;
+
         homePosition = move_group.getCurrentPose().pose;
+
+        cout << "robot action: taskHomePosition" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "taskHomePosition";
+		robot_actions_msg.robotJoints[5] = boxAngle;    // end-effector angle
+		robot_actions_pub.publish(robot_actions_msg);
+		while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+
+        cout << "gripper rotation reached" << endl;
+
+       cout << "press a key to continue-5" << endl;
+        a = 0;        
+        cin >> a;
+
+        homePosition = move_group.getCurrentPose().pose;
+
+        cout << "home position:" << homePosition<< endl;
+        cout << "centre lid position:" << centerLid << endl;
+
+       cout << "press a key to continue-6" << endl;
+        cin >> a;
+        
     // move robot to the top of the lid on x and y axis,
 		cout << "robot action: move to x and y positions on lid" << endl;
         sleep(0.5);
@@ -889,7 +918,26 @@ cin>>b;
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
+        
+      // cout << "press a key to continue-7" << endl;
+      //  cin >> a;
 
+        float battery1SlideX = 0.006 * signBattery;
+        float battery1SlideY = 0.008 * signBattery;
+
+        if( batteryNumber > 0 )
+            battery1SlideY = 0.008 * signBattery;
+        else
+            battery1SlideY = 0.015 * signBattery;
+
+        geometry_msgs::Pose BatterySlidePosition = move_group.getCurrentPose().pose;
+//        if( batteryNumber > 0 )	// second battery
+//        	funcTransformPosition(boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
+//    	else 	// first battery
+       	funcTransformPosition(-boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
+
+        battery1SlideX = moveTransformX;
+        battery1SlideY = moveTransformY;
 
     // move robot to the top of the lid on x and y axis,
 		cout << "robot action: move to x and y positions on lid" << endl;
@@ -899,7 +947,28 @@ cin>>b;
 		robot_actions_msg.speed = 0;
 		robot_actions_msg.force = 0;
 		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = 0.006 * signBattery;
+		robot_actions_msg.incrementXaxis =  (battery1SlideX - BatterySlidePosition.position.x);
+        robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y);
+//		robot_actions_msg.incrementXaxis =  (battery1SlideX - BatterySlidePosition.position.x) * signBattery;
+//        robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y) * signBattery;
+		robot_actions_msg.incrementZaxis = 0.0;
+		robot_actions_pub.publish(robot_actions_msg);
+		while( !robotActionsReady )
+		{
+			cout << "robotActionReady = " << robotActionsReady << endl;
+		}	
+		robotActionsReady = false;
+
+/*
+    // move robot to the top of the lid on x and y axis,
+		cout << "robot action: move to x and y positions on lid" << endl;
+        sleep(0.5);
+		robot_actions_msg.action = "moveToCartesian";
+		robot_actions_msg.position = 0;
+		robot_actions_msg.speed = 0;
+		robot_actions_msg.force = 0;
+		robot_actions_msg.forceDetection = false;
+		robot_actions_msg.incrementXaxis =  0.006* signBattery;
         if (batteryNumber > 0 )
 		robot_actions_msg.incrementYaxis = 0.008 * signBattery;
         else
@@ -911,6 +980,9 @@ cin>>b;
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
+*/
+       cout << "press a key to continue-8" << endl;
+       cin >> a;
 
 		// open gripper to sepcific distance to extract batteries
 		cout << "gripper action: open to distance to extract battery" << endl;
@@ -972,6 +1044,9 @@ cin>>b;
 		}	
 		robotActionsReady = false;
 
+     //  cout << "press a key to continue-9" << endl;
+     //  cin >> a;
+
        // move robot down and place the plastic tip in the edge of the battery case
 		cout << "robot action: move down to detect battery position" << endl;
         sleep(0.5);
@@ -990,6 +1065,18 @@ cin>>b;
 		}	
 		robotActionsReady = false;
 
+      // cout << "press a key to continue-10" << endl;
+     //  cin >> a;
+
+        float slideBatteryDistanceX = 0.0 * signBattery;
+        float slideBatteryDistanceY = -0.008 * signBattery;
+
+        geometry_msgs::Pose slideBatteryDistancePosition = move_group.getCurrentPose().pose;
+        funcTransformPosition(-boxAngle, slideBatteryDistancePosition.position.x, slideBatteryDistancePosition.position.y, slideBatteryDistanceX, slideBatteryDistanceY);
+
+        slideBatteryDistanceX = moveTransformX;
+        slideBatteryDistanceY = moveTransformY;
+
        // move robot on y axis to remove the first battery
 		cout << "robot action: slide to press battery side" << endl;
         sleep(0.5);
@@ -998,8 +1085,11 @@ cin>>b;
 		robot_actions_msg.speed = 0;
 		robot_actions_msg.force = 0;
 		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = 0.0;
-		robot_actions_msg.incrementYaxis = -0.008 * signBattery;
+		robot_actions_msg.incrementXaxis =  (slideBatteryDistanceX - slideBatteryDistancePosition.position.x);
+        robot_actions_msg.incrementYaxis = (slideBatteryDistanceY - slideBatteryDistancePosition.position.y);
+		//robot_actions_msg.incrementXaxis =  (slideBatteryDistanceX - slideBatteryDistancePosition.position.x) * signBattery;
+       // robot_actions_msg.incrementYaxis = (slideBatteryDistanceY - slideBatteryDistancePosition.position.y) * signBattery;
+//		robot_actions_msg.incrementYaxis = -0.008 * signBattery;
 		robot_actions_msg.incrementZaxis = 0.0;
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -1066,7 +1156,24 @@ cin>>b;
 		}	
 		robotActionsReady = false;
 
+     // cout << "press a key to continue-11" << endl;
+     //  cin >> a;
 
+        battery1SlideX = 0.0 * signBattery;
+        battery1SlideY = -0.035 * signBattery ;
+
+        if( batteryNumber > 0 )
+            battery1SlideY = -0.028 * signBattery;
+        else
+            battery1SlideY = -0.035 * signBattery;
+
+        BatterySlidePosition = move_group.getCurrentPose().pose;
+        funcTransformPosition(-boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
+
+        battery1SlideX = moveTransformX;
+        battery1SlideY = moveTransformY;
+
+//*
        // move robot on x and y position to the end of the battery1
 		cout << "robot action: move to edge of battery for sliding it" << endl;
         sleep(0.5);
@@ -1075,11 +1182,14 @@ cin>>b;
 		robot_actions_msg.speed = 0;
 		robot_actions_msg.force = 0;
 		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = 0.0;
-        if (batteryNumber > 0)
-		robot_actions_msg.incrementYaxis = -0.028 * signBattery;
-        else
-        robot_actions_msg.incrementYaxis = -0.035 * signBattery;
+		robot_actions_msg.incrementXaxis =  (battery1SlideX - BatterySlidePosition.position.x);
+        robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y);
+	//	 robot_actions_msg.incrementXaxis =  (battery1SlideX - BatterySlidePosition.position.x) * signBattery;
+     //  robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y) * signBattery;
+//        if (batteryNumber > 0)
+//		robot_actions_msg.incrementYaxis = -0.028 * signBattery;
+//        else
+//        robot_actions_msg.incrementYaxis = -0.035 * signBattery;
 		robot_actions_msg.incrementZaxis = 0.0;
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -1088,6 +1198,9 @@ cin>>b;
 		}	
 		robotActionsReady = false;
 
+
+       cout << "press a key to continue-12" << endl;
+       cin >> a;
 
        // move robot down
 		cout << "robot action: move down to detect battery for sliding it" << endl;
@@ -1129,6 +1242,24 @@ cin>>b;
 		    robotActionsReady = false;
         }
 
+       cout << "press a key to continue-13" << endl;
+       cin >> a;
+
+
+        battery1SlideX = 0.0 * signBattery;
+        battery1SlideY = 0.030 * signBattery;
+
+        if( batteryNumber > 0 )
+            battery1SlideY = 0.035 * signBattery;
+        else
+            battery1SlideY = 0.030 * signBattery; //0.030
+
+        BatterySlidePosition = move_group.getCurrentPose().pose;
+        funcTransformPosition(-boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
+
+        battery1SlideX = moveTransformX;
+        battery1SlideY = moveTransformY;
+
        // move robot on y axis to position the battery vertically
 		cout << "robot action: slide battery for extraction" << endl;
         sleep(0.5);
@@ -1138,11 +1269,14 @@ cin>>b;
 		robot_actions_msg.force = 0;
 		robot_actions_msg.forceDetection = false;
 		robot_actions_msg.incrementXaxis = 0.0;
-        
-        if( batteryNumber > 0 )
-    		robot_actions_msg.incrementYaxis = 0.035 * signBattery;
-        else
-    		robot_actions_msg.incrementYaxis = 0.030 * signBattery;
+   		robot_actions_msg.incrementXaxis =  (battery1SlideX - BatterySlidePosition.position.x);
+        robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y);
+   	//	robot_actions_msg.incrementXaxis =  (battery1SlideX - BatterySlidePosition.position.x) * signBattery;
+    //    robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y) * signBattery;
+//        if( batteryNumber > 0 )
+//    		robot_actions_msg.incrementYaxis = 0.035 * signBattery;
+//        else
+//    		robot_actions_msg.incrementYaxis = 0.030 * signBattery;
 
 		robot_actions_msg.incrementZaxis = 0.0;
 		robot_actions_pub.publish(robot_actions_msg);
@@ -1151,6 +1285,23 @@ cin>>b;
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
+
+       cout << "press a key to continue-14" << endl;
+       cin >> a;
+
+
+        battery1SlideX = 0.0 * signBattery;
+        battery1SlideY = -0.010 * signBattery;
+
+        BatterySlidePosition = move_group.getCurrentPose().pose;
+
+//        if( batteryNumber > 0 )
+//            funcTransformPosition(boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
+//        else
+        funcTransformPosition(-boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
+
+        battery1SlideX = moveTransformX;
+        battery1SlideY = moveTransformY;
 
        // move robot in 
 		cout << "robot action: move robot on y for extraction" << endl;
@@ -1160,8 +1311,10 @@ cin>>b;
 		robot_actions_msg.speed = 0;
 		robot_actions_msg.force = 0;
 		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = 0.0;
-		robot_actions_msg.incrementYaxis = -0.010 * signBattery;
+		robot_actions_msg.incrementXaxis = battery1SlideX - BatterySlidePosition.position.x;
+		robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y);
+        //robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y) * signBattery;
+//		robot_actions_msg.incrementYaxis = -0.010 * signBattery;
 		robot_actions_msg.incrementZaxis = 0.0;
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -1169,6 +1322,9 @@ cin>>b;
 			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
+
+       cout << "press a key to continue-15" << endl;
+       cin >> a;
 
        // move robot in 
 		cout << "robot action: move robot up for extraction" << endl;
@@ -1208,6 +1364,15 @@ cin>>b;
 //		sleep(0.5);
 
 
+        battery1SlideX = 0.0 * signBattery;
+        battery1SlideY = 0.025 * signBattery;
+
+        BatterySlidePosition = move_group.getCurrentPose().pose;
+        funcTransformPosition(-boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
+
+        battery1SlideX = moveTransformX;
+        battery1SlideY = moveTransformY;
+
     // move robot on y axis
 		cout << "robot action: move on y to grasp battery" << endl;
         sleep(0.5);
@@ -1216,8 +1381,11 @@ cin>>b;
 		robot_actions_msg.speed = 0;
 		robot_actions_msg.force = 0;
 		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = 0.0;
-		robot_actions_msg.incrementYaxis = 0.025 * signBattery;
+		robot_actions_msg.incrementXaxis = battery1SlideX - BatterySlidePosition.position.x;
+		robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y);
+//      robot_actions_msg.incrementYaxis = (battery1SlideY - BatterySlidePosition.position.y) * signBattery;
+//		robot_actions_msg.incrementXaxis = 0.0;
+//		robot_actions_msg.incrementYaxis = 0.025 * signBattery;
 		robot_actions_msg.incrementZaxis = 0.0;
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -1272,6 +1440,16 @@ cin>>b;
        // move robot down
         if( batteryNumber > 0 )
         {
+
+            battery1SlideX = 0.0;
+            battery1SlideY = 0.030; 
+
+            BatterySlidePosition = move_group.getCurrentPose().pose;
+            funcTransformPosition(-boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
+
+            battery1SlideX = moveTransformX;
+            battery1SlideY = moveTransformY;
+
 		    cout << "robot action: move down to detect second battery for sliding it with no force" << endl;
             sleep(0.5);
 		    robot_actions_msg.action = "moveToCartesian";
@@ -1279,8 +1457,10 @@ cin>>b;
 		    robot_actions_msg.speed = 0;
 		    robot_actions_msg.force = 0;
 		    robot_actions_msg.forceDetection = false;
-		    robot_actions_msg.incrementXaxis = 0.0;
-		    robot_actions_msg.incrementYaxis = 0.030;
+    		robot_actions_msg.incrementXaxis = battery1SlideX - BatterySlidePosition.position.x;
+    		robot_actions_msg.incrementYaxis = battery1SlideY - BatterySlidePosition.position.y;
+//		    robot_actions_msg.incrementXaxis = 0.0;
+//		    robot_actions_msg.incrementYaxis = 0.030;
 		    robot_actions_msg.incrementZaxis = 0.0;
 		    robot_actions_pub.publish(robot_actions_msg);
 		    while( !robotActionsReady )
@@ -1358,6 +1538,11 @@ cin>>b;
 		robotActionsReady = false;
 
 
+        cout << "Here starts movement to place battery in hole" << endl;
+        cout << "press a key" << endl;
+        a = 0;
+        cin >> a;
+
         bool batteryReleasedReady = false;
         
         float holeBatteryPosX = 0.2578;// 0.25781
@@ -1372,6 +1557,7 @@ cin>>b;
         cout << "Initial batteryReleasedReady = " << batteryReleasedReady << endl;
         int a = 0;
 
+/*
         while( batteryReleasedReady == false )
         {
             cout << "In while loop, press to continue" << endl;
@@ -1475,105 +1661,6 @@ cin>>b;
             }
                 
         }
-/*
-        geometry_msgs::Pose graspBatteryPos = move_group.getCurrentPose().pose;
-        float holeBatteryPosX = 0.2578;// 0.25781
-        float holeBatteryPosY = 0.0603; // 0.05876
-
-     // move robot on y axis to the battery hole
-	    cout << "robot action: move robot to hole to insert battery" << endl;
-        sleep(0.5);
-	    robot_actions_msg.action = "moveToCartesian";
-	    robot_actions_msg.position = 0;
-	    robot_actions_msg.speed = 0;
-	    robot_actions_msg.force = 0;
-	    robot_actions_msg.forceDetection = false;
-	    robot_actions_msg.incrementXaxis = holeBatteryPosX - graspBatteryPos.position.x;
-	    robot_actions_msg.incrementYaxis = holeBatteryPosY - graspBatteryPos.position.y;
-	    robot_actions_msg.incrementZaxis = 0.0;
-	    robot_actions_pub.publish(robot_actions_msg);
-	    while( !robotActionsReady )
-	    {
-		    cout << "robotActionReady = " << robotActionsReady << endl;
-	    }	
-	    robotActionsReady = false;  
-
-        // move robot on z axis down to the battery hole
-	    cout << "robot action: move robot down to insert battery" << endl;
-        sleep(0.5);
-	    robot_actions_msg.action = "moveToCartesian";
-	    robot_actions_msg.position = 0;
-	    robot_actions_msg.speed = 0;
-	    robot_actions_msg.force = 0;
-	    robot_actions_msg.forceDetection = true;
-	    robot_actions_msg.incrementXaxis = 0.0;
-	    robot_actions_msg.incrementYaxis = 0.0;
-	    robot_actions_msg.incrementZaxis = -0.040;
-	    robot_actions_pub.publish(robot_actions_msg);
-	    while( !robotActionsReady )
-	    {
-		    cout << "robotActionReady = " << robotActionsReady << endl;
-	    }	
-	    robotActionsReady = false;  
-*/
-/*
-        // open gripper to sepcific distance to extract batteries
-		cout << "gripper action: open gripper to release battery" << endl;
-		gripper_actions_msg.action = "open";
-		gripper_actions_msg.position = 185;
-		gripper_actions_msg.speed = 50;
-		gripper_actions_msg.force = 200;
-		gripper_actions_msg.useContactDetection = false;
-		gripper_actions_pub.publish(gripper_actions_msg);
-		while( !gripperActionsReady )
-		{
-			cout << "gripperActionReady = " << gripperActionsReady << endl;
-		}	
-		gripperActionsReady = false;
-		sleep(1);
-//		sleep(0.5);
-
-        // move robot on z axis down to the battery hole
-		cout << "robot action: move robot up" << endl;
-        sleep(0.5);
-		robot_actions_msg.action = "moveToCartesian";
-		robot_actions_msg.position = 0;
-		robot_actions_msg.speed = 0;
-		robot_actions_msg.force = 0;
-		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = 0.0;
-		robot_actions_msg.incrementYaxis = 0.0;
-		robot_actions_msg.incrementZaxis = 0.010;
-		robot_actions_pub.publish(robot_actions_msg);
-		while( !robotActionsReady )
-		{
-			cout << "robotActionReady = " << robotActionsReady << endl;
-		}	
-		robotActionsReady = false;  
-
-*/
-/*    int signMovement = 1;
-    for (int c=0; c<4; c++)
-    {
-		cout << "robot action: move robot up" << endl;
-        sleep(0.5);
-		robot_actions_msg.action = "moveToCartesian";
-		robot_actions_msg.position = 0;
-		robot_actions_msg.speed = 0;
-		robot_actions_msg.force = 0;
-		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = 0.0;
-		robot_actions_msg.incrementYaxis = 0.005 * signMovement;
-		robot_actions_msg.incrementZaxis = 0.0;
-		robot_actions_pub.publish(robot_actions_msg);
-		while( !robotActionsReady )
-		{
-			cout << "robotActionReady = " << robotActionsReady << endl;
-		}	
-		robotActionsReady = false;
-        signMovement = -1 * signMovement;
-        sleep(0.5);
-    }   
 */
  // open gripper to sepcific distance to extract batteries
 		cout << "gripper action: open gripper to release battery" << endl;
@@ -1623,14 +1710,16 @@ cin>>b;
         signBattery = signBattery * -1;
 } //end of for loop
 
-        // End of task 4: remove battery case and extract batteries
+        // End of task 2: remove battery case and extract batteries
         /****************************************************/
         }
         else if( taskNumber == 3 )
         {
         /****************************************************/
-        // Beginning of task 4: remove coin battery
+        // Beginning of task 3: remove coin battery
 		    // send robot to home position
+
+/*
 		    cout << "robot action: moveToHomePosition" << endl;
             sleep(0.5);
 		    robot_actions_msg.action = "moveToHomePosition";
@@ -1668,12 +1757,51 @@ cin>>b;
             int a = 0;
             cout << "press to continue" << endl;
             cin >> a;
+*/
 
- 
             geometry_msgs::Pose homePosition = move_group.getCurrentPose().pose;
 
-            float coinBatteryX = 0.3248;
-            float coinBatteryY = 0.08600;
+		    cout << "robot action: moveToHomePosition" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "moveToHomePosition";
+		    robot_actions_pub.publish(robot_actions_msg);
+        	while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+            
+            homePosition = move_group.getCurrentPose().pose;
+
+            cout << "Angle box received = " << boxAngle << endl;
+            int a = 0;
+            cout << "press a key to continue" << endl;
+            cin >> a;
+
+		    cout << "robot action: taskHomePosition" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "taskHomePosition";
+//		    robot_actions_msg.robotJoints[5] = boxAngle;    // end-effector angle
+		    robot_actions_msg.robotJoints[5] = boxAngle - 180.0;    // end-effector angle
+		    robot_actions_pub.publish(robot_actions_msg);
+		    while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+
+           cout << "press a key to continue" << endl;
+            cin >> a;
+
+            a = 0;
+            cout << "press to continue" << endl;
+            cin >> a;
+
+
+            homePosition = move_group.getCurrentPose().pose;
+
+            float coinBatteryX = 0.3269; //-90 deg (90 gripper) 0.2440; //90 deg (-90 gripper) 0.3248; // 0 degree 
+            float coinBatteryY = -0.07712; //-90 deg (90 gripper) 0.02943; // 90 deg (-90 gripper)  0.08600; //0 degree 
 
         // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move to x and y to top of coin battery" << endl;
@@ -1756,13 +1884,18 @@ cin>>b;
 		    gripperActionsReady = false;
 		    sleep(1);
 
-            cout << "press to continue" << endl;
+            cout << "press to continue-3" << endl;
             cin >> a;
 
-            homePosition = move_group.getCurrentPose().pose;
+            geometry_msgs::Pose CoinBatteryPosition = move_group.getCurrentPose().pose;
 
             float displacementCoinPositionX = 0.0;
-            float displacementCoinPositionY = 0.120;
+            float displacementCoinPositionY = 0.034;
+
+            funcTransformPosition(-boxAngle, CoinBatteryPosition.position.x, CoinBatteryPosition.position.y, displacementCoinPositionX, displacementCoinPositionY);
+
+            displacementCoinPositionX = moveTransformX;
+            displacementCoinPositionY = moveTransformY;
 
            // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move down to detect coin battery without force detection" << endl;
@@ -1772,8 +1905,10 @@ cin>>b;
 		    robot_actions_msg.speed = 0;
 		    robot_actions_msg.force = 0;
 		    robot_actions_msg.forceDetection = false;
-		    robot_actions_msg.incrementXaxis = 0.0;
-		    robot_actions_msg.incrementYaxis = displacementCoinPositionY - homePosition.position.y;
+//            robot_actions_msg.incrementXaxis = 0.0;
+//		    robot_actions_msg.incrementYaxis = displacementCoinPositionY - CoinBatteryPosition.position.y;
+		    robot_actions_msg.incrementXaxis = displacementCoinPositionX - CoinBatteryPosition.position.x;
+		    robot_actions_msg.incrementYaxis = displacementCoinPositionY - CoinBatteryPosition.position.y;
 		    robot_actions_msg.incrementZaxis = 0.0;
 		    robot_actions_pub.publish(robot_actions_msg);
 		    while( !robotActionsReady )
@@ -1806,7 +1941,17 @@ cin>>b;
             cout << "press to continue" << endl;
             cin >> a;
 
-           // move robot to the top of the lid on x and y axis,
+            geometry_msgs::Pose CoinBatteryReleaseAction = move_group.getCurrentPose().pose;
+
+            float shiftX = 0.0;
+            float shiftY = -0.018;
+
+            funcTransformPosition(-boxAngle, CoinBatteryReleaseAction.position.x, CoinBatteryReleaseAction.position.y, shiftX, shiftY);
+
+            shiftX = moveTransformX;
+            shiftY = moveTransformY;            
+            
+           // move robot to the top of the coin battery on x and y axis,
 		    cout << "robot action: move on y direction to release coin battery" << endl;
             sleep(0.5);
 		    robot_actions_msg.action = "moveToCartesian";
@@ -1814,8 +1959,10 @@ cin>>b;
 		    robot_actions_msg.speed = 0;
 		    robot_actions_msg.force = 0;
 		    robot_actions_msg.forceDetection = false;
-		    robot_actions_msg.incrementXaxis = 0.0;
-		    robot_actions_msg.incrementYaxis = -0.018;
+		    //robot_actions_msg.incrementXaxis = 0.0;
+		   // robot_actions_msg.incrementYaxis = -0.018;
+		    robot_actions_msg.incrementXaxis = shiftX - CoinBatteryReleaseAction.position.x;
+		    robot_actions_msg.incrementYaxis = shiftY - CoinBatteryReleaseAction.position.y;
 		    robot_actions_msg.incrementZaxis = 0.0;
 		    robot_actions_pub.publish(robot_actions_msg);
 		    while( !robotActionsReady )
@@ -1942,6 +2089,7 @@ cin>>b;
             float releasedCoinBatteryPositionX = 0.135;
             float releasedCoinBatteryPositionY = -0.140;
 
+
            // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move to release position of objects" << endl;
             sleep(0.5);
@@ -2043,15 +2191,52 @@ cin>>b;
             /****************************************************/
         // Beginning of task 4: remove ethernet cable
 		    // send robot to home position
+            geometry_msgs::Pose homePosition = move_group.getCurrentPose().pose;
+
 		    cout << "robot action: moveToHomePosition" << endl;
             sleep(0.5);
 		    robot_actions_msg.action = "moveToHomePosition";
+		    robot_actions_pub.publish(robot_actions_msg);
+        	while( !robotActionsReady )
+		    {
+			    cout << "robotActionReady = " << robotActionsReady << endl;
+		    }	
+		    robotActionsReady = false;
+            
+            homePosition = move_group.getCurrentPose().pose;
+
+            cout << "Angle box received = " << boxAngle << endl;
+            int a = 0;
+            cout << "press a key to continue" << endl;
+            cin >> a;
+
+		    cout << "robot action: taskHomePosition" << endl;
+            sleep(0.5);
+		    robot_actions_msg.action = "taskHomePosition";
+		    robot_actions_msg.robotJoints[5] = boxAngle;    // end-effector angle
 		    robot_actions_pub.publish(robot_actions_msg);
 		    while( !robotActionsReady )
 		    {
 			    cout << "robotActionReady = " << robotActionsReady << endl;
 		    }	
 		    robotActionsReady = false;
+
+           cout << "press a key to continue" << endl;
+            cin >> a;
+
+
+//            float initEthernetPortsPositionX = 0.308; // 0 deg (0 deg gripper) 0.322; // 0 deg (0 deg gripper)
+//            float initEthernetPortsPositionY = 0.024; // 0 deg (0 deg gripper) 0.0597; // 0 deg (0 deg gripper)
+
+            float initEthernetPortsPositionX = 0.0; // 0 deg (0 deg gripper) 0.322; // 0 deg (0 deg gripper)
+            float initEthernetPortsPositionY = 0.040; // 0 deg (0 deg gripper) 0.0597; // 0 deg (0 deg gripper)
+
+            homePosition = move_group.getCurrentPose().pose;
+
+            funcTransformPosition(-boxAngle, homePosition.position.x, homePosition.position.y, initEthernetPortsPositionX, initEthernetPortsPositionY);
+
+            initEthernetPortsPositionX = moveTransformX;
+            initEthernetPortsPositionY = moveTransformY;   
 
             // move robot 
 		    cout << "robot action: move to release position of objects" << endl;
@@ -2061,8 +2246,8 @@ cin>>b;
 		    robot_actions_msg.speed = 0;
 		    robot_actions_msg.force = 0;
 		    robot_actions_msg.forceDetection = false;
-    		robot_actions_msg.incrementXaxis = 0.010;
-    		robot_actions_msg.incrementYaxis = 0.020;
+    		robot_actions_msg.incrementXaxis = initEthernetPortsPositionX - homePosition.position.x;
+    		robot_actions_msg.incrementYaxis = initEthernetPortsPositionY - homePosition.position.y;
 		    robot_actions_msg.incrementZaxis = 0.0;
 		    robot_actions_pub.publish(robot_actions_msg);
 		    while( !robotActionsReady )
@@ -2071,7 +2256,7 @@ cin>>b;
 		    }	
 		    robotActionsReady = false;
 
-            int a = 0;
+            
             cout << "press to continue" << endl;            
             cin >> a;
 
@@ -2117,10 +2302,16 @@ cin>>b;
             cout << "press to continue" << endl;            
             cin >> a;
 
-            geometry_msgs::Pose homePosition = move_group.getCurrentPose().pose;
+            homePosition = move_group.getCurrentPose().pose;
 
-            float ethernetCableX = 0.31035;
-            float ethernetCableY = -0.01744;
+//            float ethernetCableX = 0.3138;
+//            float ethernetCableY = -0.0205;
+//            float targetEthernetPortsPositionX = 0.267;
+//            float targetEthernetPortsPositionY = 0.024;
+//            float ethernetCableX = 0.267;
+//            float ethernetCableY = 0.024;
+            float ethernetCableX = 0.322; // 0 deg (0 deg gripper) 0.308; // 90 deg (-90 deg gripper) 
+            float ethernetCableY = -0.0597; // 0 deg (0 deg gripper) 0.024; // 90 deg (-90 deg gripper) 
 
         // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move to x and y to top of coin battery" << endl;
@@ -2203,6 +2394,15 @@ cin>>b;
             cout << "press to continue" << endl;            
             cin >> a;
 
+            geometry_msgs::Pose etherPortReleasePosition = move_group.getCurrentPose().pose;
+
+            float shiftX = 0.003;
+            float shiftY = 0.0;
+
+            funcTransformPosition(-boxAngle, etherPortReleasePosition.position.x, etherPortReleasePosition.position.y, shiftX, shiftY);
+
+            shiftX = moveTransformX;
+            shiftY = moveTransformY;   
             // move robot on x axis to remove the ethernet cable
 		    cout << "robot action: move to release position of objects" << endl;
             sleep(0.5);
@@ -2211,8 +2411,8 @@ cin>>b;
 		    robot_actions_msg.speed = 0;
 		    robot_actions_msg.force = 0;
 		    robot_actions_msg.forceDetection = false;
-    		robot_actions_msg.incrementXaxis = 0.003;
-    		robot_actions_msg.incrementYaxis = 0.0;
+    		robot_actions_msg.incrementXaxis = shiftX - etherPortReleasePosition.position.x;
+    		robot_actions_msg.incrementYaxis = shiftY - etherPortReleasePosition.position.y;
 		    robot_actions_msg.incrementZaxis = 0.0;
 		    robot_actions_pub.publish(robot_actions_msg);
 		    while( !robotActionsReady )
@@ -2241,6 +2441,11 @@ cin>>b;
             cout << "press to continue" << endl;  
             cin >> a;
             
+            float targetEthernetPortsPositionX = 0.322; //0.267;
+            float targetEthernetPortsPositionY = 0.064; // 0.024;
+
+            geometry_msgs::Pose targetEtherPortReleasePosition = move_group.getCurrentPose().pose;
+
             // move robot on x axis to remove the ethernet cable
 		    cout << "robot action: move to release position of objects" << endl;
             sleep(0.5);
@@ -2249,8 +2454,8 @@ cin>>b;
 		    robot_actions_msg.speed = 0;
 		    robot_actions_msg.force = 0;
 		    robot_actions_msg.forceDetection = false;
-    		robot_actions_msg.incrementXaxis = -0.003;
-    		robot_actions_msg.incrementYaxis = 0.040;
+    		robot_actions_msg.incrementXaxis = targetEthernetPortsPositionX - targetEtherPortReleasePosition.position.x;
+    		robot_actions_msg.incrementYaxis = targetEthernetPortsPositionY - targetEtherPortReleasePosition.position.y;
 		    robot_actions_msg.incrementZaxis = 0.0;
 		    robot_actions_pub.publish(robot_actions_msg);
 		    while( !robotActionsReady )
@@ -2285,6 +2490,7 @@ cin>>b;
             cout << "press to continue" << endl;  
             cin >> a;
 
+/*
         bool etnernetReleasedReady = false;
         float EtnernetHolePosX = EtnernetHolePos.position.x;
         float EtnernetHolePosY = EtnernetHolePos.position.y;
@@ -2391,7 +2597,8 @@ cin>>b;
                 cin >> incY;
             }
                 
-        }              
+        }
+*/      
 
         }
 
