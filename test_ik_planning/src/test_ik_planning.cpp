@@ -85,6 +85,13 @@ void objectDetectionCallback(const test_ik_planning::object_state::ConstPtr &msg
                 object_state_msg.Pose = msg->Pose;
                 object_state_msg.Header = msg->Header;
             }
+            else if (msg->Obj_type == "test")
+            {
+                object_state_msg.Id = msg->Id;
+                object_state_msg.Obj_type = msg->Obj_type;
+                object_state_msg.Pose = msg->Pose;
+                object_state_msg.Header = msg->Header;
+            }
             else if (msg->Obj_type == objectString.substr(5))
             {
                 object_state_msg.Id = msg->Id;
@@ -257,8 +264,8 @@ moveit_robot::moveit_robot(ros::NodeHandle *node_handle) : nh_(*node_handle), PL
     //planning_scene.world.collision_objects.clear();
     //planning_scene_diff_publisher.publish(planning_scene);
     std::vector<std::string> object_ids;
-    object_ids.push_back("gripper");
-    object_ids.push_back("camera");
+//   object_ids.push_back("gripper");
+//    object_ids.push_back("camera");
     object_ids.push_back("ground");
     planning_scene_interface.removeCollisionObjects(object_ids);
 
@@ -290,7 +297,7 @@ moveit_robot::moveit_robot(ros::NodeHandle *node_handle) : nh_(*node_handle), PL
     //gripper_object.touch_links = std::vector<std::string>{ "ee_link"};
 
     //planning_scene.world.collision_objects.push_back(gripper_object.object);
-    planning_scene.is_diff = true;
+//    planning_scene.is_diff = true;
     //planning_scene_diff_publisher.publish(planning_scene);
 
     /* First, define the REMOVE object message*/
@@ -300,10 +307,10 @@ moveit_robot::moveit_robot(ros::NodeHandle *node_handle) : nh_(*node_handle), PL
     //remove_gripper.operation = remove_gripper.REMOVE;
 
     /* Carry out the REMOVE + ATTACH operation */
-    ROS_INFO("Attaching the gripper to the robot");
+//    ROS_INFO("Attaching the gripper to the robot");
     //planning_scene.world.collision_objects.clear();
     //planning_scene.world.collision_objects.push_back(remove_gripper);
-    planning_scene.robot_state.attached_collision_objects.push_back(gripper_object);
+//    planning_scene.robot_state.attached_collision_objects.push_back(gripper_object);
     //planning_scene_diff_publisher.publish(planning_scene);
 
     // Add camera object to robot
@@ -344,8 +351,8 @@ moveit_robot::moveit_robot(ros::NodeHandle *node_handle) : nh_(*node_handle), PL
     ROS_INFO("Attaching the camera to the robot");
     //planning_scene.world.collision_objects.clear();
     //planning_scene.world.collision_objects.push_back(remove_camera);
-    planning_scene.robot_state.attached_collision_objects.push_back(camera_object);
-    planning_scene_diff_publisher.publish(planning_scene);
+//    planning_scene.robot_state.attached_collision_objects.push_back(camera_object);
+//    planning_scene_diff_publisher.publish(planning_scene);
     //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to once the collision object appears in RViz");
 
     //collision_objects.push_back(camera_object);
@@ -560,7 +567,7 @@ bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose)
 
     geometry_msgs::Pose current_pose = move_group.getCurrentPose().pose;
     cout << "Current pose: " << current_pose << endl;
-    pose.position.z = current_pose.position.z;
+    pose.position.z = current_pose.position.z; //0.4;
     pose.orientation = current_pose.orientation;
     cout << "Target pose: " << pose << endl;
 
@@ -570,31 +577,31 @@ bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose)
     pose2plan2.header.stamp = ros::Time::now();
     target_pose_pub.publish(pose2plan2);
 
-    //double dist1 = pose.position.x - current_pose.position.x;
-    //double dist2 = pose.position.y - current_pose.position.y;
-    //double dist3 = 0; //current_pose.position.z - pose.position.z;
-    //basic_cartesian_move(dist1, dist2, dist3);
-    //success = true;
+    double dist1 = pose.position.x - current_pose.position.x;
+    double dist2 = pose.position.y - current_pose.position.y;
+    double dist3 = pose.position.z - current_pose.position.z;
+    basic_cartesian_move(dist1, dist2, dist3);
+    success = true;
 
-    move_group.setPoseTarget(pose);
+//    move_group.setPoseTarget(pose);
 
-    success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+//    success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
-    ROS_INFO_NAMED("IK Robot", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
+//    ROS_INFO_NAMED("IK Robot", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
 
     // Visualizing plans
     // ^^^^^^^^^^^^^^^^^
     // We can also visualize the plan as a line with markers in RViz.
-    ROS_INFO_NAMED("IK Robot", "Visualizing plan 1 as trajectory line");
-    visual_tools.publishAxisLabeled(pose, "pose1");
-    visual_tools.publishText(text_pose, "Pose Goal", rvt::WHITE, rvt::XLARGE);
-    visual_tools.publishTrajectoryLine(plan.trajectory_, joint_model_group);
-    visual_tools.trigger();
-    if (success)
-    {
-        visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
-        move_group.move();
-    }
+//    ROS_INFO_NAMED("IK Robot", "Visualizing plan 1 as trajectory line");
+//    visual_tools.publishAxisLabeled(pose, "pose1");
+//    visual_tools.publishText(text_pose, "Pose Goal", rvt::WHITE, rvt::XLARGE);
+//    visual_tools.publishTrajectoryLine(plan.trajectory_, joint_model_group);
+//    visual_tools.trigger();
+//    if (success)
+//    {
+//        visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
+//        move_group.move();
+//    }
     return success;
 }
 
