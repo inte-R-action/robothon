@@ -122,7 +122,8 @@ class Mask_Rcnn_object_detection():
                 self.scores.append(score[idx])
 
         # check if 11 of detected objects are unique(2-times bplace)
-        if len(np.unique(self.class_ids)) == unique_objs:
+        #if len(np.unique(self.class_ids)) == unique_objs:
+        if ('bholder' in self.class_names) and ( 'blue_button' in self.class_names) and ('red_button' in self.class_names) and ('box' in self.class_names):
             self.all_detected = True
 
         # check if box is detected
@@ -151,31 +152,39 @@ class Mask_Rcnn_object_detection():
         image_board = np.concatenate((RGB_image, board), axis=1)
 
         for a in range(len(bounding_Boxes)):#self.class_ids)):
-            obj_score = self.scores[a]
-            obj_score = round(obj_score, 3)  # round decimal float point up to 3
-            # random color to show each object
-            c = [int(self.font_color[a - 1, 0]), int(self.font_color[a - 1, 1]), int(self.font_color[a - 1, 2])]
-
-            # draw minimum area bounding box around each object
-            cv2.drawContours(image_board, [bounding_Boxes[a]], -1, c, 4)
-
-            # draw a circle in a center point of each object
-            cv2.circle(image_board, (center_points[a][0], center_points[a][1]), 2, (0, 255, 0), 2)
-
-            # write a object name and score on the image board
-            name_coordinate = (650, 30 + (a * 23))
-            score_coordinate = (bounding_Boxes[a][2, 0], bounding_Boxes[a][2, 1])
-            cv2.putText(image_board, self.class_names[a], name_coordinate, self.font, 1, c, 2)
-            cv2.putText(image_board, str(obj_score), score_coordinate, self.font, self.font_scale, (0, 0, 255),
-                        self.font_width)
-            if angle:
-                show_angle = round(angle, 3)
+            if bounding_Boxes[a] == []:
+                # draw a circle in a center point of each object
+                cv2.circle(image_board, (center_points[a][0], center_points[a][1]), 2, (255, 0, 0), 2)
             else:
-                show_angle = None
+                obj_score = self.scores[a]
+                obj_score = round(obj_score, 3)  # round decimal float point up to 3
+                # random color to show each object
+                c = [int(self.font_color[a - 1, 0]), int(self.font_color[a - 1, 1]), int(self.font_color[a - 1, 2])]
 
-            cv2.putText(image_board, f'angle: {str(show_angle)}', (650, 350), self.font, 1, (0, 0, 255), 2)
-            # cv2.putText(image_board, str(show_angle), (720, 350), self.font, self.font_scale, (0, 0, 255),
-            #             self.font_width)
+                # draw minimum area bounding box around each object
+                cv2.drawContours(image_board, [bounding_Boxes[a]], -1, c, 4)
+
+                # draw a circle in a center point of each object
+                cv2.circle(image_board, (center_points[a][0], center_points[a][1]), 2, (0, 255, 0), 2)
+
+                # write a object name and score on the image board
+                name_coordinate = (650, 30 + (a * 23))
+                score_coordinate = (bounding_Boxes[a][2, 0], bounding_Boxes[a][2, 1])
+                cv2.putText(image_board, self.class_names[a], name_coordinate, self.font, 1, c, 2)
+                cv2.putText(image_board, str(obj_score), score_coordinate, self.font, self.font_scale, (0, 0, 255),
+                            self.font_width)
+                if angle:
+                    show_angle = round(angle, 3)
+
+                elif angle == 0: 
+                    show_angle= 0
+
+                else:
+                    show_angle = None
+
+                cv2.putText(image_board, f'angle: {str(show_angle)}', (650, 350), self.font, 1, (0, 0, 255), 2)
+                # cv2.putText(image_board, str(show_angle), (720, 350), self.font, self.font_scale, (0, 0, 255),
+                #             self.font_width)
 
         cv2.imshow('img', image_board)
         # cv2.waitKey(0)
@@ -248,6 +257,15 @@ class Mask_Rcnn_object_detection():
         red_center = center_points[class_names.index('red_button')]
         blue_center = center_points[class_names.index('blue_button')]
 
+        diff_x = abs(red_center[0]-blue_center[0])
+        diff_y = abs(red_center[1]-blue_center[1])
+        if diff_x != 0:
+            angle2 = math.degrees(math.atan(diff_y/diff_x))
+        else:
+            angle2 = 90
+        print(angle2)
+        base_angle = angle2
+
         # lcd is at right side of the image(reference)
         if red_center[0] > blue_center[0]:
 
@@ -271,7 +289,13 @@ class Mask_Rcnn_object_detection():
                 box_angle = -base_angle + 180
 
         else:
-            box_angle = 0
+            # if y_lcd > y_battery (negative angle)
+            if red_center[1] < blue_center[1]:
+                box_angle = 90
+
+            # if y_lcd < y_battery (positive angle)
+            elif red_center[1] >= blue_center[1]:
+                box_angle = -90
             # print('red and blue buttons vague relative position')
 
         return box_angle

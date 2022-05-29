@@ -7,9 +7,9 @@
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg     if="$(arg debug)" name="launch_prefix"
      value="gdb -x $(find ur3_moveit_config)/launch/gdb_settings.gdb --ex run --args" />
-
+<!--
   <node name="test_ik_planning" pkg="test_ik_planning" type="test_ik_planning" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
-  </node>
+  </node>-->
 
   <include file="$(find ur3_moveit_config)/launch/ur3_moveit_planning_execution.launch">
     <arg name="sim" value="true" />
