@@ -1,15 +1,14 @@
 /*
  *********************************************************************************
- * Author: Uriel Martinez-Hernandez
- * Email: u.martinez@bath.ac.uk
- * Date: 13-May-2022
+ * Author: inte-R-action Team
+ * Date: 29-May-2022
  *
  * University of Bath
  * Multimodal Interaction and Robotic Active Perception (inte-R-action) Lab
  * Centre for Autonomous Robotics (CENTAUR)
  * Department of Electronics and Electrical Engineering
  *
- * Description: Example of RobotiQ 2F gripper responding to contact detection from tactile sensor
+ * Description: control of robotic manipulator 
  *
  *********************************************************************************
  */
@@ -221,15 +220,6 @@ int main(int argc, char** argv)
 			robot_action_mode.robotJoints[3] = 0.0;
 			robot_action_mode.robotJoints[4] = 0.0;
 			robot_action_mode.robotJoints[5] = 0.0;
-
-/*			robot_action_mode.shoulder_pan_value = 0.0;
-			robot_action_mode.shoulder_lift_value = 0.0;
-			robot_action_mode.elbow_value = 0.0;
-			robot_action_mode.wrist_1_value = 0.0;
-			robot_action_mode.wrist_2_value = 0.0;
-			robot_action_mode.wrist_3_value = 0.0;
-*/
-            //sleep(2);
             sleep(0.1);
         }
         else if( robot_action_mode.action == "moveDown" )    // move the robot down
@@ -430,10 +420,6 @@ int main(int argc, char** argv)
 				float incrementYaxis = 0.0;
                 float incrementZaxis = 0.0;
                 
-//                if( robot_action_mode.forceDetection == false )
-//                {
-//                    incrementZaxis = robot_action_mode.incrementZaxis;
-//                }
 
                 incrementXaxis = robot_action_mode.incrementXaxis;
                 incrementYaxis = robot_action_mode.incrementYaxis;
@@ -466,10 +452,7 @@ int main(int argc, char** argv)
 
                 visual_tools.trigger();
 
-/*                set_speed_frac.request.speed_slider_fraction = 0.10; // change velocity
-                clientSpeedSlider.call(set_speed_frac);
-                sleep(0.1);
-*/
+
                 if( robot_action_mode.forceDetection == false )
                 {
                     set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity
@@ -582,9 +565,7 @@ int main(int argc, char** argv)
                             ROS_INFO_NAMED("Robothon", "Visualizing plan (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
 
                             move_group.execute(trajectory);
-    //                        move_group.asyncExecute(trajectory);
 
-                            //sleep(1.0);
                             cout << "==================================================" << endl;
                             cout << "updatedMaxForceZ = " << updatedMaxForceZ << endl;
                             cout << "maximum contact force detected in Z = " << currentForceZ << endl;
@@ -609,9 +590,7 @@ int main(int argc, char** argv)
             }
             else
             {
-//				msgRobotActionStatus.data = false;
-//                robotActionStatusPub.publish(msgRobotActionStatus);
-//                sleep(0.5);
+
                 cout << "Home position has not been set" << endl;
             }
 
@@ -682,7 +661,7 @@ int main(int argc, char** argv)
 				move_group.execute(plan);
 
 				move_group.setStartState(*move_group.getCurrentState());
-//				homePositionPose = move_group.getCurrentPose().pose;
+
 
                 current_state = move_group.getCurrentState();
                 current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
@@ -749,8 +728,6 @@ int main(int argc, char** argv)
 				std::map<std::string, double> jointPositions;
 				bool success = false;
 
-//                current_state = move_group.getCurrentState();
-//                current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
                 for( int i = 0; i < 6; i++ )
                     cout << "Current Joint value [" << i << "] = " << ( joint_group_positions[i] * 180 / 3.1416 )<< ", Next Joint value increment [" << i << "] = " << robot_action_mode.robotJoints[i] << endl;
 
@@ -819,7 +796,6 @@ int main(int argc, char** argv)
 			robot_action_mode.robotJoints[4] = 0.0;
 			robot_action_mode.robotJoints[5] = 0.0;
 			
-//            sleep(2);
             sleep(0.1);
         }
         else

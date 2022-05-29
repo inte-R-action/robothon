@@ -1,7 +1,6 @@
 /*
  *********************************************************************************
- * Author: Uriel Martinez-Hernandez
- * Email: u.martinez@bath.ac.uk
+ * Author: int_R_action team 
  * Date: 13-May-2022
  *
  * University of Bath
@@ -9,7 +8,7 @@
  * Centre for Autonomous Robotics (CENTAUR)
  * Department of Electronics and Electrical Engineering
  *
- * Description: Example of RobotiQ 2F gripper responding to contact detection from tactile sensor
+ * Description: sequence of actions for Robothon competion 
  *
  *********************************************************************************
  */
@@ -82,103 +81,37 @@ float key_lock_y;
 float moveTransformX = 0.0;
 float moveTransformY = 0.0;
 
-//static const std::string PLANNING_GROUP = "manipulator";
-//moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
-//moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-//const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
+
 
 
 void funcTransformPosition(float boxAngleValue, float currentXPos, float currentYPos, float nextXPos, float nextYPos)
 {
 	MatrixXd translationMatrix(4,4);
 	MatrixXd rotationMatrix(4,4);
-	//MatrixXd currentLocation(3,1);
+
 	MatrixXd newLocation(4,1);
 
-//    cout << "Angle deg: " << boxAngleValue << endl;
 
 	float boxAngleValueInRad = boxAngleValue * PI / 180.0;
 
-//    cout << "Angle rad: " << boxAngleValueInRad << endl;
 
 	translationMatrix << 1, 0, 0, nextXPos,
-						 0, 1, 0,nextYPos,
+						 0, 1, 0, nextYPos,
                          0, 0, 1, 0,   
 						 0, 0, 0, 1;
 
-
-//    cout << "Translation mat: " << translationMatrix << endl;
-
-	//currentLocation << currentXPos, currentYPos, 1;
-
-	//currentLocation = translationMatrix * currentLocation;
-
 	rotationMatrix << cos(boxAngleValueInRad), -sin(boxAngleValueInRad), 0, currentXPos,
 				      sin(boxAngleValueInRad),  cos(boxAngleValueInRad), 0, currentYPos,
-						 0, 0, 1, 0, 
-                         0, 0, 0, 1;
-
-//    cout << "Rotation mat: " << rotationMatrix << endl;
-   
+						 0                   , 0                       , 1, 0, 
+                         0                   , 0                       , 0, 1;
 	newLocation =  rotationMatrix * translationMatrix;
 
-//    cout << "oUTPUT mat: " << newLocation << endl;
 
 	moveTransformX = newLocation(0,3);
 	moveTransformY = newLocation(1,3);
 }
 
-// Spiral Search Funtion
-const int no_waypoints=20;
-struct XY_Array
-{
-    float arr[no_waypoints][2];
-};
 
-/**
- * @brief spiral path= R=a*teta+b, x=R*cos(teta), y=R*sin(teta)
- * 
- * @param sigma_Perror  => standard variation of the position esrror (cm)
- * @param start_point => the point that sprial start from (cm)
- * @return XY_Array  => arr[no_points][2]
- */
-
-
-XY_Array generate_spiral_path( float sigma_Perror, float start_point[2])
-{
-  XY_Array waypoints;
-  float a=0.05, b=0.02;
-  float R_max=4*sigma_Perror;
-  float teta_max= (R_max-b)/a;
-  float teta_min=0;
-  float interval= (teta_max-teta_min)/(no_waypoints-1);
-  float teta=0, R=0;
-  
-
-  for (int i = 0; i < no_waypoints; i++)
-  {
-    teta = i*interval;
-    R= a*teta+b;
-    waypoints.arr[i][0]= R*cos(teta)+start_point[0];
-    waypoints.arr[i][1]= R*sin(teta)+start_point[1];
-  }
-  
- return waypoints;
-  
-}
-
-
-// to be completed 
-void sprial_force_search(float force_threshold, XY_Array spiral_points, float &X_center, float &Y_center)
-{
-  float x=0, y=0;
-   for (int i = 0; i < no_waypoints; i++)
-   {
-     x=spiral_points.arr[i][0];
-     y=spiral_points.arr[i][1];
-   }
-   
-}
 
 // callback function from gripper actions status
 void gripperActionsStatusCallback(const std_msgs::Bool::ConstPtr& msg)
@@ -202,22 +135,16 @@ void boxStatusCallback(const std_msgs::Float32::ConstPtr& msg)
 bool dataReceived = false;
 void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
 {
-    //if (objectString != "")
-    //{
-      //  try
-        //{
 
         if( dataReceived == false )
         {
-//            cout << "Obj_type: " << msg->Obj_type << endl;
+
             if (msg->Obj_type == "blue_button")
             {
                 
                 boxAngle = msg->Pose.orientation.z;
                 blue_button_x = msg->Pose.position.x;
-                blue_button_y = msg->Pose.position.y;
-                
-//                cout << "Blue button: " << blue_button_x << ", " << blue_button_y << " Angle: " << boxAngle<< endl;
+                blue_button_y = msg->Pose.position.y;   
             }
 
 
@@ -227,8 +154,6 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 boxAngle = msg->Pose.orientation.z;
                 red_button_x = msg->Pose.position.x;
                 red_button_y = msg->Pose.position.y;
-                
-//                cout << "red button: " << red_button_x << ", " << red_button_y << " Angle: " << boxAngle<< endl;
             }
 
 
@@ -238,8 +163,6 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 boxAngle = msg->Pose.orientation.z;
                 battery_lid_x = msg->Pose.position.x;
                 battery_lid_y = msg->Pose.position.y;
-                
-//                cout << "Battery Lid: " << battery_lid_x << ", " << battery_lid_y << " Angle: " << boxAngle<< endl;
             }
 
             if (msg->Obj_type == "battery")
@@ -247,9 +170,7 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 
                 boxAngle = msg->Pose.orientation.z;
                 coin_battery_x = msg->Pose.position.x;
-                coin_battery_y = msg->Pose.position.y;
-                
-//                cout << "Coin Battery: " << coin_battery_x << ", " << coin_battery_y << " Angle: " << boxAngle<< endl;
+                coin_battery_y = msg->Pose.position.y;             
             }
 
             if (msg->Obj_type == "cable")
@@ -257,9 +178,7 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 
                 boxAngle = msg->Pose.orientation.z;
                 ethernet_cable_x = msg->Pose.position.x;
-                ethernet_cable_y = msg->Pose.position.y;
-                
-//                cout << "Ethernet Cable: " << ethernet_cable_x << ", " << ethernet_cable_y << " Angle: " << boxAngle<< endl;
+                ethernet_cable_y = msg->Pose.position.y;             
             }
 
             if (msg->Obj_type == "bplace_red")
@@ -267,9 +186,7 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 
                 boxAngle = msg->Pose.orientation.z;
                 battery_hole1_x = msg->Pose.position.x;
-                battery_hole1_y = msg->Pose.position.y;
-                
-//                cout << "Red Button Hole: " << battery_hole1_x << ", " << battery_hole1_y << " Angle: " << boxAngle<< endl;
+                battery_hole1_y = msg->Pose.position.y;              
             }
 
             if (msg->Obj_type == "bplace_blue")
@@ -277,9 +194,7 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 
                 boxAngle = msg->Pose.orientation.z;
                 battery_hole2_x = msg->Pose.position.x;
-                battery_hole2_y = msg->Pose.position.y;
-                
-//                cout << "Blue Button Hole: " <<  battery_hole2_x  << ", " <<  battery_hole2_y << " Angle: " << boxAngle<< endl;
+                battery_hole2_y = msg->Pose.position.y;                
             }
 
             if (msg->Obj_type == "key")
@@ -287,9 +202,7 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 
                 boxAngle = msg->Pose.orientation.z;
                 key_x = msg->Pose.position.x;
-                key_y = msg->Pose.position.y;
-                
-//                cout << "Key: " << key_x  << ", " << key_y << " Angle: " << boxAngle<< endl;
+                key_y = msg->Pose.position.y;               
             }
 
             if (msg->Obj_type == "switch")
@@ -297,81 +210,8 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 
                 boxAngle = msg->Pose.orientation.z;
                 key_lock_x = msg->Pose.position.x;
-                key_lock_y = msg->Pose.position.y;
-                
-//                cout << "Switch: " << key_lock_x  << ", " << key_lock_y << " Angle: " << boxAngle<< endl;
+                key_lock_y = msg->Pose.position.y;               
             }
-
-//            dataReceived = true;
-            //MatrixXd currentPosMatrix(6,2);
-            //MatrixXd correctePose(6,2);
-            //MatrixXd linear_weights(6,6);
-            
-           //currentPosMatrix<< coin_battery_x  , coin_battery_y,
-                             // blue_button_x   , blue_button_y ,
-                             // battery_lid_x   , battery_lid_y ,
-                             // red_button_x    , red_button_y,
-                             // ethernet_cable_x, ethernet_cable_y,
-                              //key_x           , key_y;
-/*
-          linear_weights<< 0.411877239008355,	0.343624400273304,	0.103973097209462,	0.305533460208061,	0.114690629611894,	-0.0456120650932522,
-                           0.347921719024269,	0.307997546623599,	0.026901505012907,	0.266764837391930,	0.015477856463131,	-0.140879657858771,
-                           0.096838373123642,	0.031596978952468,	0.193490208424825,	0.047768841977478,	0.252824479732135,	 0.273251588241114,
-                           0.307325649809278,	0.264378171484973,	0.050159102701001,	0.231880265087672,	0.048940020869170,	-0.0800984690054198,
-                           0.145382772389870,	0.062508317242551,	0.238693989103227,	0.079088484157567,	0.310365440626544,	 0.323226876175461,
-                          -0.057656307320162,	-0.13363703207185,	0.279367300282538,	-0.08461494339393,	0.376651605111450,	 0.500140203176956;
-*/
-
-  /*       
-          cout<< "matrix of initial points:"<<endl;
-          cout<< currentPosMatrix<<endl;
-          cout<<    "***********"   <<endl;
-          cout<< "matrix of corrected points:"<<endl;
-          cout<< linear_weights*currentPosMatrix<<endl;
-*/
-/*
-          correctePose=linear_weights*currentPosMatrix;
-          coin_battery_x = correctePose(0,0);
-          coin_battery_y = correctePose(0,1);    
-          battery_lid_x = correctePose(2,0);
-          battery_lid_y = correctePose(2,1);   
-*/ 
-         // int a = 0;
-        //  cin>> a;                    
-                              
-                              
-        }
-
-/*
-            std::string obj2find = objectString.substr(5);
-            if (msg->Obj_type == "new_view")
-            {
-                object_state_msg.Id = msg->Id;
-                object_state_msg.Obj_type = msg->Obj_type;
-                object_state_msg.Pose = msg->Pose;
-                object_state_msg.Header = msg->Header;
-            }
-            else if (msg->Obj_type == "test")
-            {
-                object_state_msg.Id = msg->Id;
-                object_state_msg.Obj_type = msg->Obj_type;
-                object_state_msg.Pose = msg->Pose;
-                object_state_msg.Header = msg->Header;
-            }
-            else if (msg->Obj_type == objectString.substr(5))
-            {
-                object_state_msg.Id = msg->Id;
-                object_state_msg.Obj_type = msg->Obj_type;
-                object_state_msg.Pose = msg->Pose;
-                object_state_msg.Header = msg->Header;
-            }
-*/
-     //   }
-     //   catch (...)
-     //   {
-//            cout << "Error with: " << msg->Obj_type << endl;
-      //  }
-    //}
 }
 
 
@@ -404,23 +244,12 @@ void press_blue_button(moveit::planning_interface::MoveGroupInterface *move_grou
 		gripperActionsReady = false;
 		sleep(1);
 
-//        int a = 0;
-//        cout << "press a key to continue and lock callback function" << endl;
-//        cin >> a;
-        
     
         homePosition = move_group->getCurrentPose().pose;
-
-//        cout << "Angle box received = " << boxAngle << endl;
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
+;
 
         float blueButtonX = blue_button_x;//0.17606; //45deg (-45 gripper) //0.34344; //-90deg (90 gripper) //0.19968; // 90deg (-90 gripper) //0.23359; // 0 deg (0 gripper) //0.219; 90 deg //0.320; 45 degree //180 degree //0.21058;// 90 degree //0.23359; 0 degree
         float blueButtonY = blue_button_y;//0.01354; //45deg (-45 gripper) //0.03180; //-90deg (90 gripper) //-0.05410; // 90deg (-90 gripper) //0.08075; // 0 deg (0 gripper) //0.038; 90 deg // -0.1098;//0.08075;
-
-//        cout << "blueButtonX: "<<blueButtonX << "blueButtonY: "<< blueButtonY<< endl;
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
 
        
 		cout << "robot action: taskHomePosition" << endl;
@@ -434,12 +263,10 @@ void press_blue_button(moveit::planning_interface::MoveGroupInterface *move_grou
 		}	
 		robotActionsReady = false;
 
-//       cout << "press a key to continue" << endl;
-//        cin >> a;
+
         homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
+
 
         // move robot in x and y position on the blue button
 		cout << "robot action: move to x and y positions" << endl;
@@ -459,29 +286,17 @@ void press_blue_button(moveit::planning_interface::MoveGroupInterface *move_grou
 		}	
 		robotActionsReady = false;
 
-//       cout << "press a key to continue" << endl;
-//        cin >> a;
 
         float bluebutton_shiftX = -0.01038;
         float bluebutton_shiftY = 0.005; //0.01122 
 
         homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "original shift X = " << bluebutton_shiftX << endl;
-//        cout << "original shift Y = " << bluebutton_shiftY << endl;
 
         funcTransformPosition(-boxAngle, homePosition.position.x, homePosition.position.y, bluebutton_shiftX, bluebutton_shiftY);
 
         bluebutton_shiftX = moveTransformX;
         bluebutton_shiftY = moveTransformY;
-
-//  		cout << "Robot Position X =" << homePosition.position.x << endl;
-//		cout << "Robot Position Y =" << homePosition.position.y << endl;      
-//		cout << "transformed shift X =" << bluebutton_shiftX << endl;
-//		cout << "transformed shift Y =" << bluebutton_shiftY << endl;
-
-//       cout << "press a key to continue" << endl;
-//        cin >> a;
 
 
         // move robot in x and y position on the blue button
@@ -551,10 +366,6 @@ void press_blue_button(moveit::planning_interface::MoveGroupInterface *move_grou
 
         homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "Angle box received = " << boxAngle << endl;
-//        a = 0;
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
 
 		cout << "robot action: taskHomePosition" << endl;
         sleep(0.5);
@@ -597,25 +408,13 @@ void press_red_button(moveit::planning_interface::MoveGroupInterface *move_group
 		gripperActionsReady = false;
 		sleep(1);
 
-//        int a = 0;
-//        cout << "press a key to continue and lock callback function" << endl;
-//        cin >> a;
-        
     
         homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "Angle box received = " << boxAngle << endl;
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
 
         float redButtonX = red_button_x;//0.17606; //45deg (-45 gripper) //0.34344; //-90deg (90 gripper) //0.19968; // 90deg (-90 gripper) //0.23359; // 0 deg (0 gripper) //0.219; 90 deg //0.320; 45 degree //180 degree //0.21058;// 90 degree //0.23359; 0 degree
         float redButtonY = red_button_y;//0.01354; //45deg (-45 gripper) //0.03180; //-90deg (90 gripper) //-0.05410; // 90deg (-90 gripper) //0.08075; // 0 deg (0 gripper) //0.038; 90 deg // -0.1098;//0.08075;
-
-//        cout << "redButtonX: "<<redButtonX << "redButtonY: "<< redButtonY<< endl;
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
-
-       
+     
 		cout << "robot action: taskHomePosition" << endl;
         sleep(0.5);
 		robot_actions_msg.action = "taskHomePosition";
@@ -627,12 +426,8 @@ void press_red_button(moveit::planning_interface::MoveGroupInterface *move_group
 		}	
 		robotActionsReady = false;
 
-//       cout << "press a key to continue" << endl;
-//        cin >> a;
-        homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
+        homePosition = move_group->getCurrentPose().pose;
 
         // move robot in x and y position on the blue button
 		cout << "robot action: move to x and y positions" << endl;
@@ -652,29 +447,19 @@ void press_red_button(moveit::planning_interface::MoveGroupInterface *move_group
 		}	
 		robotActionsReady = false;
 
-//       cout << "press a key to continue" << endl;
-//        cin >> a;
+
 
         float redbutton_shiftX = -0.01038;
         float redbutton_shiftY = -0.010; //0.01122 
 
         homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "original shift X = " << redbutton_shiftX << endl;
-//        cout << "original shift Y = " << redbutton_shiftY << endl;
+
 
         funcTransformPosition(-boxAngle, homePosition.position.x, homePosition.position.y, redbutton_shiftX, redbutton_shiftY);
 
         redbutton_shiftX = moveTransformX;
         redbutton_shiftY = moveTransformY;
-
-//  		cout << "Robot Position X =" << homePosition.position.x << endl;
-//		cout << "Robot Position Y =" << homePosition.position.y << endl;      
-//		cout << "transformed shift X =" << redbutton_shiftX << endl;
-//		cout << "transformed shift Y =" << redbutton_shiftY << endl;
-
-//       cout << "press a key to continue" << endl;
-//        cin >> a;
 
 
         // move robot in x and y position on the blue button
@@ -769,10 +554,6 @@ void press_red_button(moveit::planning_interface::MoveGroupInterface *move_group
 
         homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "Angle box received = " << boxAngle << endl;
-//        a = 0;
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
 
 		cout << "robot action: taskHomePosition" << endl;
         sleep(0.5);
@@ -801,10 +582,6 @@ void gripper_orientation(moveit::planning_interface::MoveGroupInterface *move_gr
         
         geometry_msgs::Pose homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "Angle box received = " << boxAngle << endl;
-//        int a = 0;
-//        cout << "press a key to continue" << endl;
-//        cin >> a;
 
 		cout << "robot action: taskHomePosition" << endl;
         sleep(0.5);
@@ -908,11 +685,6 @@ void get_key(moveit::planning_interface::MoveGroupInterface *move_group, robot_a
             
             homePosition = move_group->getCurrentPose().pose;
 
-//            cout << "Angle box received = " << boxAngle << endl;
-//            int a = 0;
-//            cout << "press a key to continue" << endl;
-//            cin >> a;
-
 		    cout << "robot action: taskHomePosition" << endl;
             sleep(0.5);
 		    robot_actions_msg.action = "taskHomePosition";
@@ -947,10 +719,6 @@ void get_key(moveit::planning_interface::MoveGroupInterface *move_group, robot_a
 //			    cout << "robotActionReady = " << robotActionsReady << endl;
 		    }	
 		    robotActionsReady = false;
-
-            //int a = 0;
-//            cout << "press to continue" << endl;            
-//            cin >> a;
 
             // rotate the robot's last joint to insert battery
 		    cout << "robot action: rotate end effector to insert battery" << endl;
@@ -1096,8 +864,7 @@ void get_key(moveit::planning_interface::MoveGroupInterface *move_group, robot_a
 		    }	
 		    robotActionsReady = false;
 
-//           cout << "press to continue" << endl;            
-//            cin >> a;
+
 
         cout << "robot action: taskHomePosition" << endl;
         sleep(0.5);
@@ -1173,34 +940,6 @@ void get_key(moveit::planning_interface::MoveGroupInterface *move_group, robot_a
 		gripperActionsReady = false;
 		sleep(1);
 
-
-
-/*
-            geometry_msgs::Pose keytoLock = move_group->getCurrentPose().pose;
-            float lockCenterPosX = key_lock_x;//0.3106;
-            float lockCenterPosY = key_lock_y;//-0.062;    
-            // move robot 
-		    cout << "robot action: move to release position of objects" << endl;
-            sleep(0.5);
-		    robot_actions_msg.action = "moveToCartesian";
-		    robot_actions_msg.position = 0;
-		    robot_actions_msg.speed = 0;
-		    robot_actions_msg.force = 0;
-		    robot_actions_msg.forceDetection = false;
-    		robot_actions_msg.incrementXaxis = lockCenterPosX - keytoLock.position.x;
-    		robot_actions_msg.incrementYaxis = lockCenterPosY - keytoLock.position.y;
-		    robot_actions_msg.incrementZaxis = 0.0;
-		    robot_actions_pub.publish(robot_actions_msg);
-		    while( !robotActionsReady )
-		    {
-			    cout << "robotActionReady = " << robotActionsReady << endl;
-		    }	
-		    robotActionsReady = false;
-*/
-
-//           cout << "press to continue" << endl;            
-//            cin >> a;
-
 }
 
 void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, robot_actions::robotControlParameters robot_actions_msg, gripper_actions::gripperControlParameters gripper_actions_msg, ros::Publisher robot_actions_pub, ros::Publisher gripper_actions_pub)
@@ -1232,13 +971,7 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 		        }	
 		        gripperActionsReady = false;
 		        sleep(1);
-
-          //  homePosition = move_group->getCurrentPose().pose;
-
-//            cout << "Angle box received = " << boxAngle << endl;
-//            int a = 0;
-//            cout << "press a key to continue" << endl;
-//            cin >> a;
+a;
 
 		    cout << "robot action: taskHomePosition" << endl;
             sleep(0.5);
@@ -1254,8 +987,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 
            homePosition = move_group->getCurrentPose().pose;
 
-//           cout << "press a key to continue" << endl;
-//            cin >> a;
 
 ///////////////////////////////Reduce the robot on z axis to reach the far point on x axis
 
@@ -1283,10 +1014,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-//            float initEthernetPortsPositionX = 0.308; // 0 deg (0 deg gripper) 0.322; // 0 deg (0 deg gripper)
-//            float initEthernetPortsPositionY = 0.024; // 0 deg (0 deg gripper) 0.0597; // 0 deg (0 deg gripper)
-
             float initEthernetPortsPositionX = 0.100; // 0 deg (0 deg gripper) 0.322; // 0 deg (0 deg gripper)
             float initEthernetPortsPositionY = 0.045; // 0 deg (0 deg gripper) 0.0597; // 0 deg (0 deg gripper)
             dataReceived = true;
@@ -1298,8 +1025,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
             initEthernetPortsPositionX = moveTransformX;
             initEthernetPortsPositionY = moveTransformY;   
             
-//            cout << "press a key to continue" << endl;
-//            cin >> a;
 
             // move robot 
 		    cout << "robot action: move to release position of objects" << endl;
@@ -1319,9 +1044,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 		    }	
 		    robotActionsReady = false;
 
-            
-//            cout << "press to continue" << endl;            
-//            cin >> a;
 
             // rotate the robot's last joint to insert battery
 		    cout << "robot action: rotate end effector to insert battery" << endl;
@@ -1362,17 +1084,10 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 		    gripperActionsReady = false;
 		    sleep(1);
             
-//            cout << "press to continue" << endl;            
-//            cin >> a;
+
 
             homePosition = move_group->getCurrentPose().pose;
 
-//            float ethernetCableX = 0.3138;
-//            float ethernetCableY = -0.0205;
-//            float targetEthernetPortsPositionX = 0.267;
-//            float targetEthernetPortsPositionY = 0.024;
-//            float ethernetCableX = 0.267;
-//            float ethernetCableY = 0.024;
             float ethernetCableX = ethernet_cable_x; //0.322; // 0 deg (0 deg gripper) 0.308; // 90 deg (-90 deg gripper) 
             float ethernetCableY = ethernet_cable_y;//-0.0597; // 0 deg (0 deg gripper) 0.024; // 90 deg (-90 deg gripper) 
 
@@ -1394,8 +1109,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;            
-//            cin >> a;
 
         // move robot down
 		    cout << "robot action: move to release position of objects" << endl;
@@ -1415,8 +1128,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 		    }	
 		    robotActionsReady = false;
             
-//            cout << "press to continue" << endl;            
-//            cin >> a;
 
             // move robot up
 		    cout << "robot action: move to release position of objects" << endl;
@@ -1435,9 +1146,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 //			    cout << "robotActionReady = " << robotActionsReady << endl;
 		    }	
 		    robotActionsReady = false;
-
-//            cout << "press to continue" << endl;            
-//            cin >> a;
           
             // close gripper to sepcific distance to extract batteries
 		    cout << "gripper action: open gripper to release battery" << endl;
@@ -1453,9 +1161,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 		    }	
 		    gripperActionsReady = false;
             sleep(1.0);
-
-//            cout << "press to continue" << endl;            
-//            cin >> a;
 
             geometry_msgs::Pose etherPortReleasePosition = move_group->getCurrentPose().pose;
 
@@ -1624,10 +1329,6 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		gripperActionsReady = false;
 		sleep(1);
     
-//       cout << "press a key to continue-1" << endl;
-//        int a = 0;        
-//        cin >> a;
-
         geometry_msgs::Pose homePosition = move_group->getCurrentPose().pose;
         cout << "robot action: taskHomePosition" << endl;
         sleep(0.5);
@@ -1640,10 +1341,6 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		}	
 		robotActionsReady = false;
 
-
-//       cout << "press a key to continue-2" << endl;
-//        a = 0;        
-//        cin >> a;
 
         dataReceived = true; 
 
@@ -1670,8 +1367,6 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 //			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
-//        cout << "press to continue-3" << endl;
-//        cin >> a;
 
         geometry_msgs::Pose centerLid = move_group->getCurrentPose().pose;
         float batteryLidSlideX = 0; //centerLid.position.x;
@@ -1895,25 +1590,6 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		}	
 		robotActionsReady = false;
 
-/*
-       // move robot in x and y position to leave the lid on the table
-		cout << "robot action: move to release (lid) position" << endl;
-        sleep(0.5);
-		robot_actions_msg.action = "moveToCartesian";
-		robot_actions_msg.position = 0;
-		robot_actions_msg.speed = 0;
-		robot_actions_msg.force = 0;
-		robot_actions_msg.forceDetection = false;
-		robot_actions_msg.incrementXaxis = -0.100; // -0.100
-		robot_actions_msg.incrementYaxis = -0.085; //-0.060
-		robot_actions_msg.incrementZaxis = 0.0;
-		robot_actions_pub.publish(robot_actions_msg);
-		while( !robotActionsReady )
-		{
-			cout << "robotActionReady = " << robotActionsReady << endl;
-		}	
-		robotActionsReady = false;
-*/
     // move robot in z position
 		cout << "robot action: move to release (lid) position" << endl;
         sleep(0.5);
@@ -1963,7 +1639,6 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		}	
 		gripperActionsReady = false;
 		sleep(1);
-//		sleep(0.5);
 
        // move robot up, on z axis before moving to home position to avoid collision to the box
 		cout << "robot action: move to release (lid) position" << endl;
@@ -1983,13 +1658,8 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		}	
 		robotActionsReady = false;
 
-//        cout << "Removing battery starts here, press a key" << endl;
-//        cin >> a;
-
     int signBattery=1;
-//dataReceived = true;
-//      cout << " Box angle before the loop :" << boxAngle << endl;
-//    cin >> a;
+
 
     for (int batteryNumber=0; batteryNumber<2; batteryNumber++){
 		// send robot to home position
@@ -2013,8 +1683,7 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		robot_actions_msg.action = "taskHomePosition";
 		robot_actions_msg.robotJoints[5] = boxAngle;// end-effector angle
 
-//        cout << " Box angle inside the loop action1:" << boxAngle << endl;
-//        cin >> a;
+
 
 		robot_actions_pub.publish(robot_actions_msg);
 		while( !robotActionsReady )
@@ -2023,12 +1692,9 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		}	
 		robotActionsReady = false;
 
-//        cout << "gripper rotation reached" << endl;
 
         homePosition = move_group->getCurrentPose().pose;
 
-//        cout << "home position:" << homePosition<< endl;
-//        cout << "centre lid position:" << centerLid << endl;
 
     // move robot to the top of the lid on x and y axis,
 		cout << "robot action: move to x and y positions on lid" << endl;
@@ -2054,7 +1720,7 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
         if( batteryNumber > 0 )
             battery1SlideY = 0.011  * signBattery; //0.008
         else
-            battery1SlideY = 0.012 * signBattery; //0.015
+            battery1SlideY = 0.010 * signBattery; //0.015
 
         geometry_msgs::Pose BatterySlidePosition = move_group->getCurrentPose().pose;
        	funcTransformPosition(-boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
@@ -2094,7 +1760,7 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		}	
 		gripperActionsReady = false;
 		sleep(1);
-//		sleep(0.5);
+
 
     if (batteryNumber > 0){
         // rotate the robot's last joint before starting the sliding battery to the vertical position.
@@ -2218,7 +1884,7 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		}	
 		gripperActionsReady = false;
 		sleep(1);
-//		sleep(0.5);
+
 
       // rotate the robot's last joint before starting the sliding battery to the vertical position.
 		cout << "robot action: rotate end effector to slide battery" << endl;
@@ -2248,9 +1914,9 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
         battery1SlideY = -0.035 * signBattery ;
 
         if( batteryNumber > 0 )
-            battery1SlideY = -0.026 * signBattery;
+            battery1SlideY = -0.024 * signBattery; //-0.026
         else
-            battery1SlideY = -0.035 * signBattery;
+            battery1SlideY = -0.030 * signBattery; //-0.035
 
         BatterySlidePosition = move_group->getCurrentPose().pose;
         funcTransformPosition(-boxAngle, BatterySlidePosition.position.x, BatterySlidePosition.position.y, battery1SlideX, battery1SlideY);
@@ -2555,11 +2221,6 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		robotActionsReady = false;
 
 
-//        cout << "Here starts movement to place battery in hole" << endl;
-//        cout << "press a key" << endl;
-//        a = 0;
-//        cin >> a;
-
         // move robot on z axis down to the battery hole
 		cout << "robot action: move robot up" << endl;
         sleep(0.5);
@@ -2637,7 +2298,7 @@ void aa_battery(moveit::planning_interface::MoveGroupInterface *move_group, robo
 		}	
 		robotActionsReady = false;  
 
-//cin >> a;
+
 
                 
  // open gripper to sepcific distance to extract batteries
@@ -2704,10 +2365,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
             
             homePosition = move_group->getCurrentPose().pose;
 
-//            cout << "Angle box received = " << boxAngle << endl;
-//            int a = 0;
-//            cout << "press a key to continue" << endl;
-//            cin >> a;
 
 		    cout << "robot action: taskHomePosition" << endl;
             sleep(0.5);
@@ -2720,12 +2377,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//           cout << "press a key to continue" << endl;
-//            cin >> a;
-
-//            a = 0;
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
 
             homePosition = move_group->getCurrentPose().pose;
@@ -2779,8 +2430,7 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
+
 
             geometry_msgs::Pose CoinBatteryReleaseMove = move_group->getCurrentPose().pose;
 
@@ -2810,9 +2460,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;            
 
-            //cout << "center Position_x = " << (coinBatteryX - homePosition.position.x + 0.007) << ", " << coinBatteryX - homePosition.position.x<< endl;    
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
            // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move down to detect coin battery with force detection" << endl;
@@ -2832,28 +2479,7 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
-/*
-           // move robot to the top of the lid on x and y axis,
-		    cout << "robot action: move up without force detection" << endl;
-            sleep(0.5);
-		    robot_actions_msg.action = "moveToCartesian";
-		    robot_actions_msg.position = 0;
-		    robot_actions_msg.speed = 0;
-		    robot_actions_msg.force = 0;
-		    robot_actions_msg.forceDetection = false;
-		    robot_actions_msg.incrementXaxis = 0.0;
-		    robot_actions_msg.incrementYaxis = 0.0;
-		    robot_actions_msg.incrementZaxis = 0.020; //0.020;
-		    robot_actions_pub.publish(robot_actions_msg);
-		    while( !robotActionsReady )
-		    {
-//			    cout << "robotActionReady = " << robotActionsReady << endl;
-		    }	
-		    robotActionsReady = false;
-*/
             geometry_msgs::Pose CoinBatteryPosition = move_group->getCurrentPose().pose;
 
             float displacementCoinPositionX = 0.0;
@@ -2884,8 +2510,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
            // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move down to detect coin battery without force detection" << endl;
@@ -2905,8 +2529,7 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
+
 
             geometry_msgs::Pose CoinBatteryReleaseAction = move_group->getCurrentPose().pose;
 
@@ -2926,8 +2549,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    robot_actions_msg.speed = 0;
 		    robot_actions_msg.force = 0;
 		    robot_actions_msg.forceDetection = false;
-		    //robot_actions_msg.incrementXaxis = 0.0;
-		   // robot_actions_msg.incrementYaxis = -0.018;
 		    robot_actions_msg.incrementXaxis = shiftX - CoinBatteryReleaseAction.position.x;
 		    robot_actions_msg.incrementYaxis = shiftY - CoinBatteryReleaseAction.position.y;
 		    robot_actions_msg.incrementZaxis = 0.0;
@@ -2961,37 +2582,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
-/*
-            // rotate the robot's last joint to insert battery
-		    cout << "robot action: rotate end effector to insert battery" << endl;
-            sleep(0.5);
-		    robot_actions_msg.action = "moveToJoints";
-		    robot_actions_msg.position = 0;
-		    robot_actions_msg.speed = 0;
-		    robot_actions_msg.force = 0;
-		    robot_actions_msg.forceDetection = false;
-		    robot_actions_msg.incrementXaxis = 0.0;
-		    robot_actions_msg.incrementYaxis = 0.0;
-		    robot_actions_msg.incrementZaxis = 0.0;
-		    robot_actions_msg.robotJoints[0] = 0.0;
-		    robot_actions_msg.robotJoints[1] = 0.0;
-		    robot_actions_msg.robotJoints[2] = 0.0;
-		    robot_actions_msg.robotJoints[3] = 0.0;
-		    robot_actions_msg.robotJoints[4] = 0.0;
-       		robot_actions_msg.robotJoints[5] = 90.0; // * signBattery;
-		    robot_actions_pub.publish(robot_actions_msg);
-		    while( !robotActionsReady )
-		    {
-			    cout << "robotActionReady = " << robotActionsReady << endl;
-		    }	
-		    robotActionsReady = false;
-
-            cout << "press to continue" << endl;
-            cin >> a;
-*/
-           // move robot to 
 
      // open gripper to sepcific distance to extract batteries
 		    cout << "gripper action: open gripper to release battery" << endl;
@@ -3044,8 +2634,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    gripperActionsReady = false;
 		    sleep(1);
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
            // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move up to release coin battery" << endl;
@@ -3065,8 +2653,7 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
+
 
         cout << "robot action: taskHomePosition" << endl;
         sleep(0.5);
@@ -3090,9 +2677,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 //			cout << "robotActionReady = " << robotActionsReady << endl;
 		}	
 		robotActionsReady = false;
-
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
            // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move to release position of objects" << endl;
@@ -3130,8 +2714,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
          // open gripper to sepcific distance to extract batteries
 		    cout << "gripper action: open gripper to release battery" << endl;
@@ -3148,8 +2730,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    gripperActionsReady = false;
 		    sleep(1);
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
            // move robot to the top of the lid on x and y axis,
 		    cout << "robot action: move up from release position of objects" << endl;
@@ -3169,8 +2749,6 @@ void coin_battery(moveit::planning_interface::MoveGroupInterface *move_group, ro
 		    }	
 		    robotActionsReady = false;
 
-//            cout << "press to continue" << endl;
-//            cin >> a;
 
 		    cout << "robot action: moveToHomePosition" << endl;
             sleep(0.5);
@@ -3206,10 +2784,6 @@ int main(int argc, char** argv)
     ros::Subscriber subObjectRecog = node_handle.subscribe("ObjectStates", 10, objectDetectionCallback);
 
 
-    // connection of publisher and subscriber with the Robotiq controller from ROS Industrial
-//    ros::Subscriber robotControlParametersSub = node_handle.subscribe<robot_tasks::robotControlParameters>("robot_tasks", 1, robotControlParametersCallback);
-//    ros::Publisher robotActionStatusPub = node_handle.advertise<std_msgs::Bool>("robotActionStatus", 1000);
-
     robotiq_ft_sensor::sensor_accessor srv;
     ros::ServiceClient clientSpeedSlider  = node_handle.serviceClient<ur_msgs::SetSpeedSliderFraction>("/ur_hardware_interface/set_speed_slider"); //robot velocity control
 
@@ -3244,9 +2818,7 @@ int main(int argc, char** argv)
     move_group.setMaxVelocityScalingFactor(0.50);
     move_group.setMaxAccelerationScalingFactor(0.50);
 
-    ur_msgs::SetSpeedSliderFraction set_speed_frac;
-//    set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity in the slider of teach pendant
-//    clientSpeedSlider.call(set_speed_frac);   
+    ur_msgs::SetSpeedSliderFraction set_speed_frac;  
 
     geometry_msgs::Pose ReleasePosBattery1; 
     geometry_msgs::Pose ReleasePosEthernet; 

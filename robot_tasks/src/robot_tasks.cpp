@@ -1,7 +1,6 @@
 /*
  *********************************************************************************
- * Author: Uriel Martinez-Hernandez
- * Email: u.martinez@bath.ac.uk
+ * Author: int_R_action team 
  * Date: 13-May-2022
  *
  * University of Bath
@@ -9,7 +8,7 @@
  * Centre for Autonomous Robotics (CENTAUR)
  * Department of Electronics and Electrical Engineering
  *
- * Description: Example of RobotiQ 2F gripper responding to contact detection from tactile sensor
+ * Description: sequence of actions for Robothon competion 
  *
  *********************************************************************************
  */

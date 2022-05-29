@@ -1,7 +1,6 @@
 /*
  *********************************************************************************
- * Author: Uriel Martinez-Hernandez
- * Email: u.martinez@bath.ac.uk
+ * Author: inte-R-action 
  * Date: 13-May-2022
  *
  * University of Bath
@@ -9,7 +8,7 @@
  * Centre for Autonomous Robotics (CENTAUR)
  * Department of Electronics and Electrical Engineering
  *
- * Description: Example of RobotiQ 2F gripper responding to contact detection from tactile sensor
+ * Description: Control of RobotiQ 2F gripper responding to contact detection
  *
  *********************************************************************************
  */
@@ -145,8 +144,6 @@ int main(int argc, char** argv)
         else if( gripper_action_mode.action == "close" )    // activate the robotic gripper
         {
             std::cout << "CLOSE GRIPPER" << std::endl; 
-            // close the gripper to the maximum value of rPR = 255
-            // rGTO = 1 allows the robot to perform an action
             outputControlValues.rGTO = 1;
             outputControlValues.rSP = gripper_action_mode.speed;
             outputControlValues.rPR = gripper_action_mode.position;
@@ -182,8 +179,6 @@ int main(int argc, char** argv)
         else if( gripper_action_mode.action == "open" )    // activate the robotic gripper
         {
             std::cout << "OPEN GRIPPER" << std::endl; 
-            // close the gripper to the maximum value of rPR = 255
-            // rGTO = 1 allows the robot to perform an action
             outputControlValues.rGTO = 1;
             outputControlValues.rSP = gripper_action_mode.speed;
             outputControlValues.rPR = gripper_action_mode.position;
@@ -218,9 +213,7 @@ int main(int argc, char** argv)
         }
         else
         {
-//            msgGripperActionStatus.data = false;
-//            gripperActionStatusPub.publish(msgGripperActionStatus);
-            // empty
+
         }
 
         // set gripper to standby to clear the flags
