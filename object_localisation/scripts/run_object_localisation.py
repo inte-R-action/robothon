@@ -1,3 +1,12 @@
+#* Author: inte-R-action Team
+#* Date: 29-May-2022
+# *
+#* University of Bath
+#* Multimodal Interaction and Robotic Active Perception (inte-R-action) Lab
+#* Centre for Autonomous Robotics (CENTAUR)
+#* Department of Electronics and Electrical Engineering
+#*
+#* Description: upload objects geometrical information to the database 
 
 from math import sin, cos, radians
 from rs_cam import rs_cam
@@ -9,6 +18,7 @@ from object_classifier import Mask_Rcnn_object_detection
 import os
 from database_funcs import database
 import numpy as np
+import math
 ROOT_DIR = os.path.dirname(__file__)
 
 
@@ -16,7 +26,7 @@ class object_localiser:
     def __init__(self, display):
         self.display = display
 
-        weight_path=os.path.join(ROOT_DIR, "mrcnn_weights/mrcnn_99obj_BGR_0015.h5")
+        weight_path=os.path.join(ROOT_DIR, "mrcnn_weights/mrcnn_135obj_BGR_0029.h5")
         print(weight_path)
         self.classifier = Mask_Rcnn_object_detection(weight_path)
         self.db = database()
@@ -29,7 +39,7 @@ class object_localiser:
 
     def depth_search(self, x, y, depth_image):
         depth = 0
-        max_i = 5
+        max_i = 10
         for i in range(max_i):
             new_x_max = min(x+i, depth_image.shape[0])
             new_x_min = max(x-i, 0)
@@ -49,6 +59,7 @@ class object_localiser:
 
     def run_localisation(self):
         no_attempts = 4
+        self.classifier.erase_history()
 
         for att in range(no_attempts):
             print(f"Attempt no: {att}")
@@ -58,7 +69,7 @@ class object_localiser:
             color_image= cv2.cvtColor(color_image,  cv2.COLOR_RGB2BGR)
 
             if self.display:
-                cv2.imshow("RS colour image", np.hstack((color_image, depth_colormap)))
+                cv2.imshow("RS colour image", np.hstack((cv2.cvtColor(color_image,  cv2.COLOR_BGR2RGB), depth_colormap)))
                 key = cv2.waitKey(1)
                 # Press esc or 'q' to close the image window
                 if key & 0xFF == ord('q') or key == 27:
@@ -74,9 +85,30 @@ class object_localiser:
                 confident = self.predictions[2]
                 box_angle = self.predictions[3]
                 Cpoints = self.predictions[4]
+                ID.append(99)
+                Names.append('test')
+                confident.append(1)
+                box_angle = self.predictions[3]
+                Cpoints.append([320, 240])
                 depths = [float(depth_image[p[1], p[0]]) for i, p in enumerate(Cpoints)]
+                bounding_Boxes.append([])
 
                 if self.classifier.all_detected:
+
+                    # Update name of bplaces to be red and blue based on distance from box center
+                    if Names.count('bplace') > 0:
+                        bplace_idxs = [ i for i in range(len(Names)) if Names[i] == 'bplace' ]
+                        box_idx = Names.index('box')
+                        dist = []
+                        for idx in bplace_idxs:
+                            dist.append(math.sqrt( (Cpoints[idx][0]-Cpoints[box_idx][0])**2 + (Cpoints[idx][1]-Cpoints[box_idx][1])**2))
+                        
+                        min_idx = bplace_idxs[min(range(len(dist)), key=dist.__getitem__)]
+                        max_idx = bplace_idxs[max(range(len(dist)), key=dist.__getitem__)]
+
+                        Names[min_idx] = 'bplace_red'
+                        Names[max_idx] = 'bplace_blue'
+                    
                     for p, id in enumerate(ID):
                         # Wider depth search if invalid point
                         if depths[p] == 0:
@@ -103,7 +135,6 @@ class object_localiser:
                     print(self.predictions)
                     if ouput_predictions:
                         self.publish_to_database(ouput_predictions)
-                    self.classifier.erase_history()
                     return
 
                 elif self.classifier.box_detected:
@@ -142,9 +173,7 @@ class object_localiser:
             ouput_predictions = [[0, "new_view", 1.0, 0.0, x, y, z]]
             if ouput_predictions:
                 self.publish_to_database(ouput_predictions)
-            self.classifier.erase_history()
         else:
-            self.classifier.erase_history()
             print("No new view to go to")
 
     def publish_to_database(self, ouput_predictions):
@@ -164,6 +193,7 @@ if __name__ == '__main__':
                         default=True,
                         action="store")
     args = parser.parse_known_args()[0]                 
+    localiser = None
     try:
         localiser = object_localiser(args.disp)
         while (True):
@@ -177,5 +207,6 @@ if __name__ == '__main__':
         print("**Image Error**")
         traceback.print_exc(file=sys.stdout)
     finally:
-        localiser.cam.pipeline.stop()
+        if localiser is not None:
+            localiser.cam.pipeline.stop()
         cv2.destroyAllWindows()

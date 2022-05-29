@@ -1,3 +1,13 @@
+#* Author: inte-R-action Team
+#* Date: 29-May-2022
+# *
+#* University of Bath
+#* Multimodal Interaction and Robotic Active Perception (inte-R-action) Lab
+#* Centre for Autonomous Robotics (CENTAUR)
+#* Department of Electronics and Electrical Engineering
+#*
+#* Description:  camera parameters calibration 
+
 #!/usr/bin/env python3.7
 
 from math import sin, cos, radians
@@ -77,10 +87,10 @@ def create_pose(x, y, angle, dist):
     p.pose.position.y = y
     p.pose.position.z = dist
     # Make sure the quaternion is valid and normalized
-    angle = radians(angle+45)
-    p.pose.orientation.x = sin(angle/2) * 1
+    angle = radians(angle)
+    p.pose.orientation.x = sin(angle/2) * 0
     p.pose.orientation.y = sin(angle/2) * 0
-    p.pose.orientation.z = sin(angle/2) * 0
+    p.pose.orientation.z = sin(angle/2) * 1
     p.pose.orientation.w = cos(angle/2)
 
     return p
@@ -102,8 +112,11 @@ while 1:
   # down right 502-387
   # down left 284-399
   # up left 274-187
-    x1 = 502
-    y1 = 387
+  # battery holder 441-380
+  # up mid screw 370-152
+  # up left screw 122-145
+    x1 = 158
+    y1 = 406
     x2 = 400
     y2 = 100
 
