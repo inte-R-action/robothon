@@ -174,12 +174,12 @@ int main(int argc, char** argv)
             move_group.setStartState(*move_group.getCurrentState());
 
             // move robot to home position
-            double shoulder_pan_value = -23.64;
-            double shoulder_lift_value = -84.94;
-            double elbow_value = 45.46;
-            double wrist_1_value = -49.61;
-            double wrist_2_value = -90.08;
-            double wrist_3_value = 0.0 - 26.0; //334.00;//334.00;
+            double shoulder_pan_value = -40.43;//-23.64;// 
+            double shoulder_lift_value = -97.68;//-84.94; //
+            double elbow_value = 33.49;//45.46;//
+            double wrist_1_value = -26.74;//-49.61; //
+            double wrist_2_value = -90;//-90.08; //
+            double wrist_3_value = 0.0 - 42;//0.0 - 26.0;// //334.00;//322.45;
             bool success = false;
 
             homePosition["shoulder_pan_joint"] = shoulder_pan_value * 3.1416 / 180;	// (deg*PI/180)
@@ -472,6 +472,8 @@ int main(int argc, char** argv)
 */
                 if( robot_action_mode.forceDetection == false )
                 {
+                    set_speed_frac.request.speed_slider_fraction = 0.50; // change velocity
+                    clientSpeedSlider.call(set_speed_frac);
                     move_group.execute(trajectory);
                 }
                 else
