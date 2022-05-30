@@ -33,6 +33,7 @@ class rs_cam:
             self.align = rs.align(align_to)
 
             self.depth_intrinsics = None
+            self.colour_intrinsics = None
 
     def colour_frames(self, frames):
         color_frame = frames.get_color_frame()
@@ -53,6 +54,7 @@ class rs_cam:
         color_frame = aligned_frames.get_color_frame()
 
         self.depth_intrinsics = aligned_depth_frame.profile.as_video_stream_profile().intrinsics
+        self.colour_intrinsics = color_frame.profile.as_video_stream_profile().intrinsics
 
         # Validate that both frames are valid
         if not aligned_depth_frame or not color_frame:

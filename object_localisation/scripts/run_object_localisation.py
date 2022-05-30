@@ -26,7 +26,7 @@ class object_localiser:
     def __init__(self, display):
         self.display = display
 
-        weight_path=os.path.join(ROOT_DIR, "mrcnn_weights/mrcnn_135obj_BGR_0029.h5")
+        weight_path = os.path.join(ROOT_DIR, "mrcnn_weights/mrcnn_135obj_BGR_0029.h5")
         print(weight_path)
         self.classifier = Mask_Rcnn_object_detection(weight_path)
         self.db = database()
@@ -35,7 +35,21 @@ class object_localiser:
 
         self.cam = rs_cam(depth=True)
         self.cam.depth_frames(self.cam.pipeline.wait_for_frames())
-        self.cameraInfo = self.cam.depth_intrinsics
+        # self.cameraInfo = self.cam.depth_intrinsics
+        print(f"depth intrinsics: {self.cam.depth_intrinsics}")
+        print(f"colour intrinsics: {self.cam.colour_intrinsics}")
+        self.cameraInfo = rs.intrinsics()
+        self.cameraInfo.width = 640
+        self.cameraInfo.height = 480
+        self.cameraInfo.ppx = 324.7422
+        self.cameraInfo.ppy = 225.8990
+        self.cameraInfo.fx = 630.9241
+        self.cameraInfo.fy = 629.5015
+        # self.cameraInfo.coeffs = [Radial: [0.140784267654903,-0.223962950366363] Tangential: [0,0]]
+        # self.cameraInfo.model = cameraInfo.distortion_model
+        self.cameraInfo.model = rs.distortion.none
+        # self.cameraInfo.coeffs = [i for i in cameraInfo.D]
+        print(f"custom intrinsics: {self.cameraInfo}")
 
     def depth_search(self, x, y, depth_image):
         depth = 0
@@ -111,8 +125,10 @@ class object_localiser:
                     
                     for p, id in enumerate(ID):
                         # Wider depth search if invalid point
+                        depth2 = depth_image.get_distance(int(Cpoints[p][0]),int(Cpoints[p][1]))
                         if depths[p] == 0:
                             depths[p] = self.depth_search(Cpoints[p][1], Cpoints[p][0], depth_image)
+                        print(f"depth 1: {depths[p]}, depth 2: {depth2}")
                         # Convert pixels to spatial coords
                         result = rs.rs2_deproject_pixel_to_point(self.cameraInfo, [Cpoints[p][0], Cpoints[p][1]], depths[p])
 
@@ -139,8 +155,10 @@ class object_localiser:
 
                 elif self.classifier.box_detected:
                     depth = float(depth_image[new_view[1], new_view[0]])
+                    depth2 = depth_image.get_distance(int(new_view[0]),int(new_view[1]))
                     if depth == 0:
                         depth = self.depth_search(new_view[1], new_view[0], depth_image)
+                    print(f"depth: {depth}, depth2: {depth2}")
                     result = rs.rs2_deproject_pixel_to_point(self.cameraInfo, [new_view[0], new_view[1]], depth)
 
                     x = result[0]
@@ -163,8 +181,11 @@ class object_localiser:
         
         if new_view:
             depth = float(depth_image[new_view[1], new_view[0]])
+            depth2 = depth_image.get_distance(int(new_view[0]),int(new_view[1]))
+            print(f"depth: {depth}")
             if depth == 0:
                 depth = self.depth_search(new_view[1], new_view[0], depth_image)
+            print(f"depth: {depth}, depth2: {depth2}")
             result = rs.rs2_deproject_pixel_to_point(self.cameraInfo, [new_view[0], new_view[1]], depth)
 
             x = result[0]
