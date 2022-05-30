@@ -1,0 +1,15 @@
+Run UR robot command thing?
+
+rosrun test_ik_planning test_ik_planning
+
+To go to test point:
+rostopic pub -1 RobotMove std_msgs/String find_test
+
+To go home:
+rostopic pub -1 RobotMove std_msgs/String home
+
+To go to another object:
+rostopic pub -1 RobotMove std_msgs/String find_<object name>
+
+If you publish the same thing twice in a row it gets ignored! So publish dummy in between if needed, e.g.
+rostopic pub -1 RobotMove std_msgs/String xxx

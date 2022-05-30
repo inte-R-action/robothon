@@ -1,3 +1,12 @@
+#* Author: inte-R-action Team
+#* Date: 29-May-2022
+# *
+#* University of Bath
+#* Multimodal Interaction and Robotic Active Perception (inte-R-action) Lab
+#* Centre for Autonomous Robotics (CENTAUR)
+#* Department of Electronics and Electrical Engineering
+#*
+#* Description:  publisher class to pass objects infromation from database to ROS
 #!/usr/bin/env python3.7
 
 from matplotlib.pyplot import box

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(gripper_actions)
+project(robot_tasks)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -42,6 +42,7 @@ add_message_files(
   FILES
   processArguments.msg
   gripperControlParameters.msg
+  robotControlParameters.msg
 )
 
 
@@ -49,13 +50,14 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  geometry_msgs
 )
 
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES visuo_tactile
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -82,6 +84,6 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
 include_directories(include ${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
 
-add_executable(${PROJECT_NAME} src/gripper_actions.cpp)
+add_executable(${PROJECT_NAME} src/robot_tasks.cpp)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

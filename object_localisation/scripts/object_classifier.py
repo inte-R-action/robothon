@@ -1,3 +1,13 @@
+#* Author: inte-R-action Team
+#* Date: 29-May-2022
+# *
+#* University of Bath
+#* Multimodal Interaction and Robotic Active Perception (inte-R-action) Lab
+#* Centre for Autonomous Robotics (CENTAUR)
+#* Department of Electronics and Electrical Engineering
+#*
+#* Description: Mask-RCNN object detection and localization 
+
 import os, sys
 # Root directory of the project
 ROOT_DIR = os.path.dirname(__file__)
