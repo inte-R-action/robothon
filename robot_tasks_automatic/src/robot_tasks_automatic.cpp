@@ -212,8 +212,8 @@ void objectDetectionCallback(const robot_tasks::object_state::ConstPtr &msg)
                 key_lock_x = msg->Pose.position.x;
                 key_lock_y = msg->Pose.position.y;               
             }
+		}
 }
-
 
 void press_blue_button(moveit::planning_interface::MoveGroupInterface *move_group, robot_actions::robotControlParameters robot_actions_msg, gripper_actions::gripperControlParameters gripper_actions_msg, ros::Publisher robot_actions_pub, ros::Publisher gripper_actions_pub)
 {
@@ -971,7 +971,6 @@ void ethernet_port(moveit::planning_interface::MoveGroupInterface *move_group, r
 		        }	
 		        gripperActionsReady = false;
 		        sleep(1);
-a;
 
 		    cout << "robot action: taskHomePosition" << endl;
             sleep(0.5);

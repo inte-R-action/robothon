@@ -43,6 +43,7 @@ add_message_files(
   processArguments.msg
   gripperControlParameters.msg
   robotControlParameters.msg
+  object_state.msg
 )
 
 
