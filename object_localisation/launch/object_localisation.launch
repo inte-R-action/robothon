@@ -1,8 +1,7 @@
 <launch>
 
+
   <!-- for object localisation-->
-    
- 
   <node name="postgresql_node" pkg="object_localisation" type="postgresql_node.py" respawn="false" output="screen">
   </node>
  
@@ -12,25 +11,15 @@
   <node name="gui" pkg="gui" type="gui.py" respawn="false" output="screen">
   </node>
     
-
-  <!--  for camera calibration-->
- <!--<node name="test_location" pkg="object_localisation" type="test_camera_params.py" respawn="false" output="screen">
-  </node>
---> 
-<!---
- <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="-0.041 -0.075 0.1035 0.9606 -0.0071 -0.1131 -0.2536 wrist_3_link camera_frame 100" />
--->
-<!-- <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="-0.043 -0.072 0.1035 0 0 0.012217, 0.9999254  wrist_3_link camera_frame 100" />
--->
-
-<!-- best so far:-->
-<!-- <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="-0.043 -0.072 0.1035  0.0087259, -0.0001066, 0.0122165, 0.9998873  wrist_3_link camera_frame 100" />
--->
- 
- 
- <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="-0.04 -0.072 0.1035  0.0087259, -0.0001066, 0.0122165, 0.9998873  wrist_3_link camera_frame 100" />
-
+<!--for camera calibration-->
 <!--
-<node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="-0.046 -0.07 0.1035 -0.0045677 -0.0018467 0.0122255 0.9999131 wrist_3_link camera_frame 100" />
+ <node name="test_location" pkg="object_localisation" type="test_camera_params.py" respawn="false" output="screen">
+  </node>
+  
+   <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
+  </include>
 -->
+
+<node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster"
+      args="-0.035 -0.0795005 0.0827469 -0.00521848 -0.00502728 0.00248873 0.999971 wrist_3_link camera_color_optical_frame 100" />
 </launch>

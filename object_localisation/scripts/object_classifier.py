@@ -132,8 +132,8 @@ class Mask_Rcnn_object_detection():
                 self.scores.append(score[idx])
 
         # check if 11 of detected objects are unique(2-times bplace)
-        #if len(np.unique(self.class_ids)) == unique_objs:
-        if ('bholder' in self.class_names) and ( 'blue_button' in self.class_names) and ('red_button' in self.class_names) and ('box' in self.class_names):
+        if len(np.unique(self.class_ids)) == unique_objs:
+        #if ('bholder' in self.class_names) and ( 'blue_button' in self.class_names) and ('red_button' in self.class_names) and ('box' in self.class_names):
             self.all_detected = True
 
         # check if box is detected

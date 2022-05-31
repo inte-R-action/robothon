@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.7
+
 #* Author: inte-R-action Team
 #* Date: 29-May-2022
 # *
@@ -7,7 +9,6 @@
 #* Department of Electronics and Electrical Engineering
 #*
 #* Description:  publisher class to pass objects infromation from database to ROS
-#!/usr/bin/env python3.7
 
 from matplotlib.pyplot import box
 import rospy
@@ -25,6 +26,7 @@ import pandas as pd
 import time
 from scipy.spatial.transform import Rotation
 ROOT_DIR = os.path.dirname(__file__)
+import numpy as np
 
 class obj_class:
     def __init__(self, frame_id, queue=10):
@@ -74,7 +76,12 @@ class object_transformer:
         self.obj_tab_col_names, _ = self.db.query_table('detected_objects', rows=0)
 
         self.detections = pd.DataFrame()
+        self.all_detections = pd.DataFrame()
+        self.average_detections = pd.DataFrame()
         self.poses2pub = []
+
+        self.frames2ave = 4
+        self.frames_observed = 0
 
     def updateCallback(self, msg):
         self.updateFlag = msg.data
@@ -107,7 +114,7 @@ class object_transformer:
 
     def create_pose(self, x, y, z, angle):
         p = PoseStamped()
-        p.header.frame_id = "/camera_frame"
+        p.header.frame_id = "/camera_color_optical_frame"
 
         p.pose.position.x = x
         p.pose.position.y = y
@@ -121,9 +128,9 @@ class object_transformer:
 
         return p
 
-    def run_pipeline(self):
+    def run_pipeline_old(self):
         # Update predictions
-        self.updatePub.publish(self.updateFlag)
+        self.updatePub.publish(self.updateFlag) # Let GUI know if we're updating
         if self.detections.empty:
             self.read_database()
         else:
@@ -139,7 +146,7 @@ class object_transformer:
                         if row['obj_name'] == "new_view":
                             frame = "/wrist_3_link" # want to position under camera
                         else:
-                            frame = "/camera_frame" # want to position under gripper
+                            frame = "/camera_color_optical_frame" # want to position under gripper
                         # Pose in base frame (here or in cpp file)
                         obj_rob_pose = self.cam2rob_transform(obj_cam_pose, frame)
 
@@ -159,9 +166,84 @@ class object_transformer:
         print("Detections Camera Frame:")
         print(self.detections)
     
+    def run_pipeline_new(self):
+        # Update predictions
+        self.updatePub.publish(self.updateFlag) # Let GUI know if we're updating
+        
+        if self.updateFlag or (self.average_detections.iloc[0]['obj_name'] == 'new_view'):
+            self.read_database()
+            # Transform and add to poses to publish
+            self.poses2pub = []
+            for index, row in self.average_detections.iterrows():
+                if (row['center_x'] != 0) and (row['center_y'] != 0):
+                    # Pose in camera frame
+                    obj_cam_pose = self.create_pose(row['center_x'], row['center_y'], row['distance'], row['rotation'])
+                    if row['obj_name'] == "new_view":
+                        frame = "/wrist_3_link" # want to position under camera
+                    else:
+                        frame = "/camera_color_optical_frame" # want to position under gripper
+                    # Pose in base frame (here or in cpp file)
+                    obj_rob_pose = self.cam2rob_transform(obj_cam_pose, frame)
+
+                    self.poses2pub.append({'name': row['obj_name'], 'id': row['obj_id'], 'pose': obj_rob_pose})
+            
+            if not self.average_detections.empty:
+                if (self.detections.iloc[0]['obj_name'] != 'new_view') and (self.frames_observed >= self.frames2ave):
+                    self.updateFlag = False
+                    self.detections = pd.DataFrame()
+                    self.all_detections = pd.DataFrame()
+                    self.frames_observed = 0
+                    print("Flag set False")
+
+        for object in self.poses2pub:
+            if object['pose'] is not None:
+                if object['name'] == 'battery':
+                    print(object['name'])
+                    print(object['pose'])
+                self.obj_pub.publish(object['pose'], object['id'], object['name'])
+                   
+        print("All Detections Camera Frame:")
+        print(self.all_detections)
+        print("Average Detections Camera Frame:")
+        print(self.average_detections)
+    
     def read_database(self):
         col_names, data = self.db.query_table('detected_objects', 'all')
         self.detections = pd.DataFrame(data, columns=col_names)
+        self.average_over_detections(col_names)
+    
+    def average_over_detections(self, col_names):
+        if self.all_detections.empty:
+            self.all_detections = self.detections
+            self.average_detections = pd.DataFrame(columns=col_names[1:])
+        else:
+            new_observation = False
+            for index, row in self.detections.iterrows():
+                # make sure we only add detections not seen yet
+                if not self.all_detections['identification'].isin([row['identification']]).any():
+                    self.all_detections.loc[len(self.all_detections)] = row
+                    new_observation = True
+            if new_observation:
+                self.frames_observed = self.frames_observed + 1
+                print(f"Number of observations: {self.frames_observed}/{self.frames2ave}")
+        
+        self.average_detections = pd.DataFrame(columns=col_names[1:])
+        for obj_name in pd.unique(self.all_detections.obj_name):
+            obj_id = self.all_detections.loc[self.all_detections['obj_name'] == obj_name]['obj_id'].values[0]
+            xs = self.all_detections.loc[self.all_detections['obj_name'] == obj_name]['center_x'].values
+            ys = self.all_detections.loc[self.all_detections['obj_name'] == obj_name]['center_y'].values
+            dists = self.all_detections.loc[self.all_detections['obj_name'] == obj_name]['distance'].values
+            rots = self.all_detections.loc[self.all_detections['obj_name'] == obj_name]['rotation'].values
+            confs = self.all_detections.loc[self.all_detections['obj_name'] == obj_name]['confidence'].values
+
+            med_x = np.median(xs)
+            med_y = np.median(ys)
+            med_dist = np.median(dists)
+            med_rot = np.median(rots)
+            med_conf = np.median(confs)
+
+            new_row = [obj_id, obj_name, med_conf, med_rot, med_x, med_y, med_dist]
+            self.average_detections.loc[len(self.average_detections)] = new_row
 
 
 if __name__ == '__main__':               
@@ -171,7 +253,7 @@ if __name__ == '__main__':
         rate = rospy.Rate(0.5) # 0.5 Hz
         while (not rospy.is_shutdown()):
             try:
-                obj_transformer.run_pipeline()
+                obj_transformer.run_pipeline_new()
             except Exception as e:
                 print("error: ", e)
             rate.sleep()

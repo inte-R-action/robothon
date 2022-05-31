@@ -1,7 +1,5 @@
 #!/usr/bin/env python3.7
-# Should be run from multimodal_human_robot_collaboration folder
 
-from fileinput import filename
 import sys, os
 import rospy
 import argparse

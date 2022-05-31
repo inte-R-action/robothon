@@ -63,7 +63,7 @@ class rs_cam:
         color_image = np.asanyarray(color_frame.get_data())
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=100), cv2.COLORMAP_JET)
 
-        return color_image, depth_colormap, depth_image
+        return color_image, depth_colormap, depth_image, aligned_depth_frame
 
     def scale(self, image): # zooms on image
         height, width, channels = image.shape
